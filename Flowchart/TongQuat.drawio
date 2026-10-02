@@ -1,0 +1,67 @@
+<mxfile host="Electron">
+  <diagram name="Page-1" id="TnjBdkkSFCUmyT-r1y07">
+    <mxGraphModel dx="860" dy="561" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-2" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeWidth=4;fontSize=13;fontStyle=1" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="423" y="100" as="sourcePoint" />
+            <mxPoint x="423" y="130" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-17" edge="1" parent="1" source="g0sa4xkviXDdIFSQ8jbp-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=4;fontSize=13;fontStyle=1" target="g0sa4xkviXDdIFSQ8jbp-9" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-18" edge="1" parent="1" source="g0sa4xkviXDdIFSQ8jbp-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=4;fontSize=13;fontStyle=1" target="g0sa4xkviXDdIFSQ8jbp-9" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=4;fontSize=13;fontStyle=1" value="Khởi tạo hệ thống và Queue" vertex="1">
+          <mxGeometry height="40" width="110" x="368" y="130" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;strokeWidth=4;fontSize=13;fontStyle=1" value="Start" vertex="1">
+          <mxGeometry height="40" width="80" x="383" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-24" edge="1" parent="1" source="g0sa4xkviXDdIFSQ8jbp-9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=4;fontSize=13;fontStyle=1" target="g0sa4xkviXDdIFSQ8jbp-22" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-9" parent="1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;strokeWidth=4;fontSize=13;fontStyle=1" value="Lora Task" vertex="1">
+          <mxGeometry height="50" width="125" x="360.5" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-10" parent="1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;strokeWidth=4;fontSize=13;fontStyle=1" value="MQTT Task" vertex="1">
+          <mxGeometry height="50" width="125" x="188" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-12" parent="1" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;strokeWidth=4;fontSize=13;fontStyle=1" value="Display Task" vertex="1">
+          <mxGeometry height="50" width="125" x="538" y="245" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-19" edge="1" parent="1" source="g0sa4xkviXDdIFSQ8jbp-3" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;strokeWidth=4;fontSize=13;fontStyle=1" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="418" y="350" as="sourcePoint" />
+            <mxPoint x="248" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-21" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=4;fontSize=13;fontStyle=1" target="g0sa4xkviXDdIFSQ8jbp-12" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="423" y="170" as="sourcePoint" />
+            <mxPoint x="463" y="290" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-22" parent="1" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=4;fontSize=13;fontStyle=1" value="Khởi động Scheduler" vertex="1">
+          <mxGeometry height="40" width="110" x="368" y="370" as="geometry" />
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-23" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;entryX=0.436;entryY=-0.075;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=4;fontSize=13;fontStyle=1" target="g0sa4xkviXDdIFSQ8jbp-22" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="248" y="300" as="sourcePoint" />
+            <mxPoint x="468" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="g0sa4xkviXDdIFSQ8jbp-25" edge="1" parent="1" source="g0sa4xkviXDdIFSQ8jbp-12" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.636;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;strokeWidth=4;fontSize=13;fontStyle=1" target="g0sa4xkviXDdIFSQ8jbp-22" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="418" y="360" as="sourcePoint" />
+            <mxPoint x="568" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

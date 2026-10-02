@@ -1,0 +1,47 @@
+﻿# Build outputs
+*.o
+*.d
+*.su
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.a
+
+# Debug/Release build dirs (STM32CubeIDE)
+**/Debug/
+**/Release/
+
+# PlatformIO
+**/.pio/
+**/build/
+
+# Java / Maven / Spring Boot
+**/target/
+*.class
+*.jar
+*.war
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+**/.settings/
+**/.project
+**/.cproject
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Node
+**/node_modules/
+
+# Bkp / temp
+*.bkp
+*.tmp
