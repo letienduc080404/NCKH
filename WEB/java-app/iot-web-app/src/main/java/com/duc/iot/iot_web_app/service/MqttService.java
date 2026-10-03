@@ -1,4 +1,4 @@
-package com.duc.iot.iot_web_app.service;
+﻿package com.duc.iot.iot_web_app.service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -137,16 +137,6 @@ public class MqttService implements MqttCallback {
                         case "phase" -> { sensorName = "Pha"; }
                         case "cycle" -> { sensorName = "Chu kỳ"; }
                         case "mode" -> { sensorName = "Chế độ"; }
-                    }
-                        case "humidity"    -> { sensorName = "Ã„ÂÃ¡Â»â„¢ Ã¡ÂºÂ©m khÃƒÂ´ng khÃƒÂ­"; type = Sensor.SensorType.HUMIDITY; }
-                        case "soil"        -> { sensorName = "Ã„ÂÃ¡Â»â„¢ Ã¡ÂºÂ©m Ã„â€˜Ã¡ÂºÂ¥t"; }
-                        case "soil1"       -> { sensorName = "Ã„ÂÃ¡Â»â„¢ Ã¡ÂºÂ©m Ã„â€˜Ã¡ÂºÂ¥t 1"; }
-                        case "soil2"       -> { sensorName = "Ã„ÂÃ¡Â»â„¢ Ã¡ÂºÂ©m Ã„â€˜Ã¡ÂºÂ¥t 2"; }
-                        // Short-form keys sent by ESP32 firmware (MQTT_PublishSensorData)
-                        case "T"   -> { sensorName = "NhiÃ¡Â»â€¡t Ã„â€˜Ã¡Â»â„¢"; type = Sensor.SensorType.TEMPERATURE; }
-                        case "H"   -> { sensorName = "Ã„ÂÃ¡Â»â„¢ Ã¡ÂºÂ©m khÃƒÂ´ng khÃƒÂ­"; type = Sensor.SensorType.HUMIDITY; }
-                        case "SM1" -> { sensorName = "Ã„ÂÃ¡Â»â„¢ Ã¡ÂºÂ©m Ã„â€˜Ã¡ÂºÂ¥t 1"; }
-                        case "SM2" -> { sensorName = "Ã„ÂÃ¡Â»â„¢ Ã¡ÂºÂ©m Ã„â€˜Ã¡ÂºÂ¥t 2"; }
                     }
                     
                     newReadings.add(createReading(device, sensorName, type, value.asDouble(), payloadTime));
