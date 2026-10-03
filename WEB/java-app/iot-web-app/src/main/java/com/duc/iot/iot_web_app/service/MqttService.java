@@ -1,4 +1,4 @@
-﻿package com.duc.iot.iot_web_app.service;
+package com.duc.iot.iot_web_app.service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -118,7 +118,7 @@ public class MqttService implements MqttCallback {
 
             java.util.List<SensorReading> newReadings = new java.util.ArrayList<>();
 
-            for (java.util.Map.Entry<String, JsonNode> entry : (Iterable<java.util.Map.Entry<String, JsonNode>>) () -> data.fields()) {
+            for (java.util.Map.Entry<String, JsonNode> entry : data.properties()) {
                 String key = entry.getKey();
                 JsonNode value = entry.getValue();
                 if (value.isNumber()) {

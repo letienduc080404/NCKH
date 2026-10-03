@@ -36,8 +36,7 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length)
 
     /* PARSE JSON */
     JsonDocument doc;
-
-    DeserializationError error = deserializeJson(doc, msg); // Phân tích chuỗi JSON và lưu vào doc.
+    DeserializationError error = deserializeJson(doc, msg);
 
     if (error)
     {
@@ -46,9 +45,28 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length)
         return;
     }
 
-    /* MODE command: {"mode":"AUTO"} or {"mode":"MANUAL"} */
-    const char *mode = doc["mode"]; // Lấy trường mode (AUTO hoặc MANUAL)
+    /* 1. XỬ LÝ LỆNH CẤU HÌNH NGƯỠNG (THRESHOLDS) TỪ WEB */
+    const char *cmd = doc["cmd"];
+    if (cmd != nullptr)
+    {
+        if (strcmp(cmd, "set_thresholds") == 0)
+        {
+            const char* sensorName = doc["sensor"];
+            Serial.printf("[MQTT] Received set_thresholds for sensor: %s\n", sensorName);
+            // TODO: Bạn có thể thêm code xử lý lưu Ngưỡng vào Flash/EEPROM tại đây
+            return; // Xử lý xong, thoát để không chạy xuống báo lỗi
+        }
+        else if (strcmp(cmd, "clear_thresholds") == 0)
+        {
+            const char* sensorName = doc["sensor"];
+            Serial.printf("[MQTT] Received clear_thresholds for sensor: %s\n", sensorName);
+            // TODO: Code xóa Ngưỡng
+            return;
+        }
+    }
 
+    /* 2. XỬ LÝ LỆNH CHUYỂN CHẾ ĐỘ: {"mode":"AUTO"} or {"mode":"MANUAL"} */
+    const char *mode = doc["mode"];
     if (mode != nullptr)
     {
         LoRaCommand modeCommand = {};
@@ -78,32 +96,31 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length)
         {
             Serial.println("[ERROR] CommandQueue FULL");
         }
-
         return;
     }
 
-    /* GET RELAY + STATE */
+    /* 3. XỬ LÝ LỆNH BẬT/TẮT VAN (RELAY) */
     int relay = doc["relay"] | 0;     // Lấy trường relay (1 hoặc 2)
     const char *state = doc["state"]; // Lấy trường state (ON/OFF)
 
     if ((relay != 1 && relay != 2) || state == nullptr)
     {
-        Serial.println("Invalid MQTT command");
+        Serial.println("Invalid MQTT command or Command not recognized.");
         return;
     }
 
     /* CREATE LORA COMMAND */
-    LoRaCommand cmd = {};
-    cmd.type = COMMAND_IRRIGATION;
-    cmd.zone = relay;
+    LoRaCommand cmdLora = {};
+    cmdLora.type = COMMAND_IRRIGATION;
+    cmdLora.zone = relay;
 
     if (strcmp(state, "ON") == 0)
     {
-        cmd.irr = true;
+        cmdLora.irr = true;
     }
     else if (strcmp(state, "OFF") == 0)
     {
-        cmd.irr = false;
+        cmdLora.irr = false;
     }
     else
     {
@@ -113,12 +130,12 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length)
     }
 
     /* Gửi command sang LoRaTask */
-    if (xQueueSend(commandQueue, &cmd, 0) == pdPASS)
+    if (xQueueSend(commandQueue, &cmdLora, 0) == pdPASS)
     {
         Serial.print("[MQTT] CMD queued: ZONE=");
-        Serial.print(cmd.zone);
+        Serial.print(cmdLora.zone);
         Serial.print(" IRR=");
-        Serial.println(cmd.irr ? "ON" : "OFF");
+        Serial.println(cmdLora.irr ? "ON" : "OFF");
     }
     else
     {
@@ -143,7 +160,6 @@ static void reconnectMQTT(void)
 
     Serial.println("\n[MQTT] Connecting to HiveMQ Cloud...");
 
-    // Random Client ID tránh 2 client dùng cùng ID, ví dụ ESP32_Client-a83f
     String clientId = "ESP32_Client-" + String(random(0, 0xffff), HEX);
 
     if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_password))
@@ -151,7 +167,6 @@ static void reconnectMQTT(void)
         Serial.println("[MQTT] Connected!");
         lastMqttReconnectAttempt = 0;
 
-        // Subscribe control topic -> để broker chuyển message từ web về ESP32
         bool subscribed = mqttClient.subscribe(subscribe_topic);
 
         Serial.print("[MQTT] Subscribe ");
@@ -168,25 +183,30 @@ static void reconnectMQTT(void)
 
 static void publishData(const SensorData &data)
 {
-    JsonDocument doc; // Tạo JSON document.
+    JsonDocument doc; 
 
-    doc["T"] = data.temperature;
-    doc["H"] = data.humidity;
-    doc["SM1"] = data.soil1;
-    doc["SM2"] = data.soil2;
-    doc["valve1"] = (data.valve1 == VALVE_ON) ? "ON" : "OFF";
-    doc["valve2"] = (data.valve2 == VALVE_ON) ? "ON" : "OFF";
-    doc["pump"] = (data.pump == PUMP_ON) ? "ON" : "OFF";
-    doc["mode"] = (data.irrigationMode == MODE_AUTO) ? "AUTO" : "MANUAL";
+    // CHÚ Ý: Đã thay đổi tên các Key giống hệt với Web App (Có dấu tiếng Việt)
+    doc["Nhiệt độ"] = data.temperature;
+    doc["Độ ẩm không khí"] = data.humidity;
+    doc["Độ ẩm đất 1"] = data.soil1;
+    doc["Độ ẩm đất 2"] = data.soil2;
+
+    // Thay đổi trạng thái thành số (1.0 = ON/AUTO, 0.0 = OFF/MANUAL) để Web có thể convert sang Double
+    doc["Van 1"]   = (data.valve1 == VALVE_ON) ? 1.0 : 0.0;
+    doc["Van 2"]   = (data.valve2 == VALVE_ON) ? 1.0 : 0.0;
+    doc["Máy bơm"] = (data.pump == PUMP_ON) ? 1.0 : 0.0;
+    doc["Chế độ"]  = (data.irrigationMode == MODE_AUTO) ? 1.0 : 0.0;
+    
+    // Các thông số còn lại giữ nguyên, Web sẽ tự tạo sensor nếu cần
     doc["battery"] = data.batteryPercent;
     doc["activeZone"] = data.activeZone;
     doc["phase"] = (uint8_t)data.irrigationPhase;
     doc["cycle"] = data.irrigationCycle;
-    doc["streaming"] = data.streaming;
+    doc["streaming"] = data.streaming ? 1.0 : 0.0;
 
-    char payload[256];
+    char payload[512]; // Nâng kích thước buffer lên 512 do key tiếng Việt tốn bytes hơn
 
-    serializeJson(doc, payload, sizeof(payload)); // Chuyển JSON thành chuỗi và ghi vào payload
+    serializeJson(doc, payload, sizeof(payload)); 
 
     bool result = mqttClient.publish(publish_topic, payload);
 
@@ -218,19 +238,15 @@ void MQTTManager_Run(void *pvParameters)
     {
         if (WiFiManager_Maintain())
         {
-            /* Đồng bộ thời gian */
             SystemManager_SyncTime();
-            /* Cho phép MQTT reconnect ngay sau khi WiFi vừa trở lại */
             lastMqttReconnectAttempt = 0;
         }
         if (!WiFiManager_IsConnected() && mqttClient.connected())
         {
-            /* Khi WiFi mất thì đóng MQTT session cũ */
             mqttClient.disconnect();
             Serial.println("[MQTT] Disconnected due to WiFi loss");
         }
 
-        /* Chỉ kết nối và duy trì MQTT khi WiFi Ready */
         if (WiFiManager_IsConnected())
         {
             if (!mqttClient.connected())
@@ -240,13 +256,10 @@ void MQTTManager_Run(void *pvParameters)
 
             if (mqttClient.connected())
             {
-                /* Duy trì MQTT connection */
                 mqttClient.loop();
 
-                /* Có sensor data mới? */
                 if (xQueueReceive(mqttDataQueue, &data, 0) == pdPASS)
                 {
-                    /* MQTT PUBLISH */
                     publishData(data);
                 }
             }
