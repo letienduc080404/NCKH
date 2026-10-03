@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8"/>
@@ -408,9 +408,22 @@
     function toggleCommand(type, isChecked) {
         const badge = document.getElementById('device-status-badge');
         if (badge && badge.innerText === 'OFFLINE') {
-            alert("Thiáº¿t bá»‹ Ä‘ang OFFLINE. KhÃ´ng thá»ƒ gá»­i lá»‡nh Ä‘iá» u khiá»ƒn!");
+            alert("Thiết bị đang OFFLINE. Không thể gửi lệnh điều khiển!");
             document.getElementById('toggle-relay' + type).checked = !isChecked;
             return;
+        }
+        
+        const modeStatus = document.getElementById('status-mode');
+        const isManual = modeStatus && modeStatus.innerText === 'THỦ CÔNG';
+        
+        if (isManual && type === 1 && isChecked) {
+            const valve1 = document.getElementById('toggle-relay2') && document.getElementById('toggle-relay2').checked;
+            const valve2 = document.getElementById('toggle-relay3') && document.getElementById('toggle-relay3').checked;
+            if (!valve1 && !valve2) {
+                alert("Vui lòng mở ít nhất 1 van (Van nước 1 hoặc Van nước 2) trước khi bật máy bơm!");
+                document.getElementById('toggle-relay1').checked = false;
+                return;
+            }
         }
         
         let payload = {};
