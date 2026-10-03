@@ -93,7 +93,7 @@ public class MqttService implements MqttCallback {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        String payload = new String(message.getPayload());
+        String payload = new String(message.getPayload(), java.nio.charset.StandardCharsets.UTF_8);
         log.info("Received message on topic {}: {}", topic, payload);
 
         try {

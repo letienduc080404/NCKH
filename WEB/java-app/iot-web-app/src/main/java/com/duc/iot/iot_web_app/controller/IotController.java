@@ -139,6 +139,20 @@ public class IotController {
         return "home";
     }
 
+    @GetMapping("/fix-sensors")
+    @ResponseBody
+    public String fixSensors() {
+        List<Sensor> allSensors = sensorRepository.findAll();
+        int count = 0;
+        for (Sensor s : allSensors) {
+            if (s.getSensorName().contains("Ã") || s.getSensorName().contains("Ä")) {
+                sensorRepository.delete(s);
+                count++;
+            }
+        }
+        return "Deleted " + count + " corrupted sensors. Please go back to dashboard.";
+    }
+
     @PostMapping("/devices/add")
     public String addDevice(@RequestParam String deviceName,
             @RequestParam String category,
