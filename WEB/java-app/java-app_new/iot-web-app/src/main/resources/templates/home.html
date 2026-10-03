@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="'IOT_SENTRY | ' + ${device.deviceName}">IOT_SENTRY | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-body: #f1f5f9;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --bg-input: #f8f9fa;
+            --border-light: #e2e8f0;
+            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --color-ptit: #b31d1d;
+            --status-online: #10b981;
+            --status-offline: #ef4444;
+        }
+        body { background: var(--bg-body); color: var(--text-main); font-family: 'Inter', system-ui, sans-serif; }
+        .glass { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; box-shadow: var(--card-shadow); }
+        .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; color:var(--text-muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.15em; text-decoration:none; transition:all .2s; }
+        .sidebar-link:hover { background: var(--bg-input); color: var(--color-ptit); }
+        .sidebar-link.active { background: rgba(179, 29, 29, 0.08); color: var(--color-ptit); border-left: 3px solid var(--color-ptit); border-radius: 0 8px 8px 0; }
+        .metric-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 24px; transition: all .3s ease; position: relative; overflow: hidden; box-shadow: var(--card-shadow); }
+        .metric-card:hover { border-color: var(--color-ptit); transform: translateY(-2px);}
+        .mono { font-family:'JetBrains Mono',monospace; }
+        .ms { font-family:'Material Symbols Outlined'; font-size:20px; font-weight:400; font-style:normal; line-height:1; }
+        pre { white-space: pre-wrap; word-break: break-all; }
+        .pulse-ring { position: relative; display: flex; justify-content: center; align-items: center; }
+        .pulse-ring::before { content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: inherit; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; opacity: 0.6; z-index: -1; }
+        @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        @media (max-width: 768px) {
+            h1 { font-size: 26px !important; line-height: 1.2 !important; }
+            .glass { padding: 16px !important; }
+            .metric-card { padding: 16px !important; }
+            .mono { font-size: 24px !important; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Mobile Overlay -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+<aside id="sidebar" style="z-index:50; background: var(--bg-sidebar); border-right: 1px solid var(--border-light);" class="flex flex-col fixed left-0 top-0 w-[240px] h-[100vh] p-[24px_16px] transition-transform duration-300 -translate-x-full lg:translate-x-0">
+    <div style="margin-bottom:32px;padding:0 8px;display:flex;align-items:center;gap:14px;">
+        <div style="width:42px;height:42px;flex-shrink:0;display:flex;justify-content:center;align-items:center;overflow:hidden;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/13/Logo_PTIT_University.png" alt="PTIT Logo" style="width:130%;height:130%;object-fit:contain;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-size:18px;font-weight:900;color:var(--text-main);letter-spacing:-.03em;line-height:1;">IOT_SENTRY</div>
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.15em;margin-top:5px;font-weight:700;">DEVICE CONTROL</div>
+            <div style="font-size:8px;color:var(--text-muted);margin-top:2px;">by Duc Le - PTIT</div>
+        </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;flex:1;">
+        <a href="/" class="sidebar-link"><span class="ms">dashboard</span>Bảng điều khiển</a>
+        <a href="/devices" class="sidebar-link active"><span class="ms">developer_board</span>Thiết bị</a>
+        <a th:href="@{'/analytics/' + ${device.id}}" class="sidebar-link"><span class="ms">query_stats</span>Thống kê</a>
+        <a href="/settings" class="sidebar-link"><span class="ms">tune</span>Cập nhật OTA</a>
+    </nav>
+    <div style="padding-top:16px;border-top:1px solid rgba(255,255,255,.05);">
+        <a href="/devices" class="sidebar-link"><span class="ms">arrow_back</span>Tất cả thiết bị</a>
+    </div>
+    <div style="margin-top:auto;padding-top:20px;text-align:center;">
+            <div th:if="${#authorization.expression('isAuthenticated()')}" style="margin-bottom: 16px; display:flex; align-items:center; justify-content:center; gap: 8px; background:var(--bg-input); padding: 8px; border-radius: 8px;">
+                <div style="width:24px; height:24px; background:var(--color-ptit); border-radius:50%; color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">
+                    <span th:text="${#authentication.name.substring(0,1).toUpperCase()}">U</span>
+                </div>
+                <span style="font-size:12px; font-weight:700; color:var(--text-main);" th:text="${#authentication.name}">admin</span>
+                <form th:action="@{/logout}" method="post" style="display:inline; margin-left:auto;">
+                    <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--status-offline);display:flex;align-items:center;padding:4px;" title="Đăng xuất">
+                        <span class="ms" style="font-size:16px;">logout</span>
+                    </button>
+                </form>
+            </div>
+        <div style="font-size:8px;color:#859397;line-height:1.5;text-transform:uppercase;letter-spacing:.1em;">Học Viện Công Nghệ Bưu Chính Viễn Thông<br>Cơ Sở Tại TP. Hồ Chí Minh</div>
+    </div>
+</aside>
+
+<main class="lg:ml-[240px] p-6 lg:p-8 min-h-screen flex flex-col gap-6">
+    <!-- Mobile Header -->
+    <div class="lg:hidden flex justify-between items-center">
+        <div style="font-size:18px;font-weight:900;color:var(--text-main);">IOT_SENTRY</div>
+        <button onclick="toggleSidebar()" class="glass p-2 rounded-lg" style="color:var(--text-main);">
+            <span class="ms">menu</span>
+        </button>
+    </div>
+
+    <!-- Device Header -->
+    <div class="glass" style="border-radius:24px;padding:40px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-100px;right:-50px;width:300px;height:300px;background:radial-gradient(circle,rgba(179,29,29,.05),transparent 70%);border-radius:50%;"></div>
+        <div style="position:absolute;bottom:-100px;left:20%;width:400px;height:400px;background:radial-gradient(circle,rgba(16,185,129,.05),transparent 70%);border-radius:50%;"></div>
+        
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;position:relative;z-index:10;">
+            <div style="display:flex;align-items:center;gap:24px;">
+                <div style="width:72px;height:72px;border-radius:20px;background:var(--bg-input);border:1px solid var(--border-light);display:flex;align-items:center;justify-content:center;color:var(--text-main);box-shadow:var(--card-shadow);">
+                    <span class="ms" style="font-size:36px;">developer_board</span>
+                </div>
+                <div>
+                    <h1 style="font-size:42px;font-weight:900;color:var(--text-main);letter-spacing:-.03em;line-height:1.1;" th:text="${device.deviceName}">Device Name</h1>
+                    <div style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+                        <span id="device-status-dot" th:class="${device.status != null and device.status.name() == 'ONLINE'} ? 'pulse-ring' : ''" 
+                              style="width:8px;height:8px;border-radius:50%;display:inline-block;"
+                              th:styleappend="${device.status != null and device.status.name() == 'ONLINE'} ? 'background:#34d399;' : 'background:#f87171;'"></span>
+                        <span style="font-size:12px;color:#859397;text-transform:uppercase;letter-spacing:.2em;font-weight:700;"
+                              th:text="${(device.category != null ? device.category : 'IoT Device') + ' • ' + (device.location != null ? device.location : 'Unknown')}">Category • Location</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg-input);padding:12px;border-radius:16px;border:1px solid var(--border-light);">
+                <div style="padding:4px 16px;border-right:1px solid var(--border-light);">
+                    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:800;">Mã kết nối (Token)</div>
+                    <span class="mono" style="color:var(--text-main);font-size:14px;font-weight:600;" th:text="${device.deviceUid}">0</span>
+                </div>
+                <div style="padding:4px 16px;border-right:1px solid var(--border-light);">
+                    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Địa chỉ IP</div>
+                    <span class="mono" style="color:var(--text-muted);font-size:14px;font-weight:600;" th:text="${device.ipAddress != null ? device.ipAddress : '0.0.0.0'}">N/A</span>
+                </div>
+                <div style="padding:4px 12px;">
+                    <span id="device-status-badge" th:style="${device.status != null and device.status.name() == 'ONLINE'} ? 'background:rgba(16,185,129,.15);color:var(--status-online);border:1px solid rgba(16,185,129,.3);padding:6px 16px;border-radius:20px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;' : 'background:rgba(239,68,68,.15);color:var(--status-offline);border:1px solid rgba(239,68,68,.3);padding:6px 16px;border-radius:20px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;'"
+                          th:text="${device.status != null ? device.status : 'OFFLINE'}">ONLINE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Core Metrics Grid -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;">
+        <!-- Mode Control -->
+        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,.1);color:#3b82f6;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <span class="ms">settings_suggest</span>
+                </div>
+                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Chế độ hoạt động</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div class="mono" id="status-mode" style="font-size:24px;font-weight:900;color:var(--text-main);">THỦ CÔNG</div>
+                        <div style="font-size:12px;color:#859397;margin-top:4px;">Tự động/Thủ công</div>
+                    </div>
+                </div>
+                <div style="display:flex; background:rgba(0,0,0,0.2); border-radius:8px; padding:4px;">
+                    <button id="btn-mode-manual" onclick="setModeCommand('MANUAL')" style="flex:1; padding:8px; border-radius:6px; border:none; font-size:13px; font-weight:700; cursor:pointer; background:#3b82f6; color:#fff; transition:all 0.2s;">THỦ CÔNG</button>
+                    <button id="btn-mode-auto" onclick="setModeCommand('AUTO')" style="flex:1; padding:8px; border-radius:6px; border:none; font-size:13px; font-weight:700; cursor:pointer; background:transparent; color:#859397; transition:all 0.2s;">TỰ ĐỘNG</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Relay Controls -->
+        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(244,63,94,.1);color:#f43f5e;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <span class="ms">power</span>
+                </div>
+                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Máy bơm</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div class="mono" id="status-relay1" style="font-size:24px;font-weight:900;color:var(--text-main);">OFF</div>
+                    <div style="font-size:12px;color:#859397;margin-top:4px;">Nhấn để bật/tắt máy bơm</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-relay1" class="sr-only peer" onchange="toggleCommand(1, this.checked)">
+                  <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-rose-500"></div>
+                </label>
+            </div>
+        </div>
+        
+                <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,.1);color:#34d399;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <span class="ms">water_drop</span>
+                </div>
+                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Van nước 1</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div class="mono" id="status-relay2" style="font-size:24px;font-weight:900;color:var(--text-main);">OFF</div>
+                    <div style="font-size:12px;color:#859397;margin-top:4px;">Nhấn để đóng/mở van</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-relay2" class="sr-only peer" onchange="toggleCommand(2, this.checked)">
+                  <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+            </div>
+        </div>
+
+        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,.1);color:#34d399;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <span class="ms">water_drop</span>
+                </div>
+                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Van nước 2</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div class="mono" id="status-relay3" style="font-size:24px;font-weight:900;color:var(--text-main);">OFF</div>
+                    <div style="font-size:12px;color:#859397;margin-top:4px;">Nhấn để đóng/mở van</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggle-relay3" class="sr-only peer" onchange="toggleCommand(3, this.checked)">
+                  <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+            </div>
+        </div>
+
+        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,.1);color:#34d399;display:flex;align-items:center;justify-content:center;">
+                        <span class="ms">schedule</span>
+                    </div>
+                    <span id="metric-receive_date" class="mono" style="font-size:14px;font-weight:700;color:#34d399;" th:text="${device.lastSeen != null ? #temporals.format(device.lastSeen, 'dd/MM/yyyy') : '--'}">--</span>
+                </div>
+                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Thời gian</span>
+            </div>
+            <div>
+                <div class="mono" style="font-size:36px;font-weight:900;color:var(--text-main);">
+                    <span id="metric-receive_time" th:text="${device.lastSeen != null ? #temporals.format(device.lastSeen, 'HH:mm:ss') : '--'}">--</span>
+                </div>
+                <div style="font-size:12px;color:#859397;margin-top:4px;">thời gian nhận dữ liệu</div>
+            </div>
+        </div>
+
+        <!-- Dynamic sensor readings -->
+        <div th:each="entry : ${latestReadings}" class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;border-color:var(--border-light);cursor:pointer;" th:data-sensor="${entry.key}" onclick="openThresholdModal(this.getAttribute('data-sensor'))">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(138,235,255,.1);color:var(--color-ptit);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <span class="ms">sensors</span>
+                </div>
+                <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.15em;font-weight:700;" th:text="${entry.key}">Sensor</span>
+            </div>
+            <div>
+                <div th:id="'metric-' + ${entry.key}" class="mono" style="font-size:36px;font-weight:900;color:var(--text-main);" th:text="${#numbers.formatDecimal(entry.value, 1, 2)}">0.00</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Cập nhật mới nhất</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State for Sensors & Telemetry Stream -->
+    <div class="flex flex-col xl:grid xl:grid-cols-[1fr_400px] gap-6 items-start">
+        
+        <!-- Interactive Chart Placeholder / Activity -->
+        <div class="glass" style="border-radius:20px;padding:32px;height:100%;min-height:360px;display:flex;flex-direction:column;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+                <div>
+                    <h2 style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-.02em;">Telemetry Activity</h2>
+                    <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">Live visualization of incoming data</p>
+                </div>
+                <a th:href="'/analytics/' + ${device.id}" style="padding:8px 16px;background:var(--bg-input);border-radius:8px;font-size:11px;font-weight:700;color:var(--text-main);text-decoration:none;transition:all .2s;border:1px solid var(--border-light);" onmouseover="this.style.borderColor='var(--color-ptit)'" onmouseout="this.style.borderColor='var(--border-light)'">
+                    XEM CHI TIếT <span class="ms" style="font-size:14px;vertical-align:middle;margin-left:4px;">arrow_forward</span>
+                </a>
+            </div>
+            
+            <div th:if="${#lists.isEmpty(latestReadings)}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-input);border-radius:12px;border:1px dashed var(--border-light);">
+                <div style="width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.03);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <span class="ms" style="font-size:32px;color:var(--text-muted);opacity:0.3;">monitoring</span>
+                </div>
+                <div style="font-size:14px;font-weight:600;color:var(--text-muted);">No telemetry data available yet</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:8px;max-width:250px;text-align:center;">
+                    Biểu đồ sẽ tự động hiển thị khi thiết bị gửi dữ liệu lên.
+                </div>
+            </div>
+            
+            <div th:unless="${#lists.isEmpty(latestReadings)}" style="flex:1;position:relative;background:var(--bg-input);border-radius:12px;padding:16px;border:1px solid var(--border-light);">
+                <canvas id="miniChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Terminal Stream -->
+        <div class="glass" style="border-radius:20px;overflow:hidden;border:1px solid var(--border-light);box-shadow:var(--card-shadow);">
+            <div style="background:var(--bg-input);padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="display:flex;gap:6px;">
+                        <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;"></div>
+                        <div style="width:10px;height:10px;border-radius:50%;background:#eab308;"></div>
+                        <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.1em;font-family:'JetBrains Mono',monospace;">node_stream_live</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="pulse-ring" style="width:6px;height:6px;border-radius:50%;background:var(--status-online);display:inline-block;"></span>
+                    <span style="font-size:10px;color:var(--status-online);text-transform:uppercase;font-weight:700;letter-spacing:.1em;">Live</span>
+                </div>
+            </div>
+            <div id="data-stream" style="background:#f8f9fa;padding:20px;height:300px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-main);line-height:1.7;">
+                <div style="color:var(--text-muted);margin-bottom:8px;">> System initialized. Waiting for payloads on topic <span style="color:var(--color-ptit);">/api/v1/[[${device.deviceUid}]]/telemetry</span>...</div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Registered Sensors Panel -->
+    <div class="glass" style="border-radius:20px;padding:32px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <h2 style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-.02em;">Hardware Configuration</h2>
+        </div>
+        
+        <div th:if="${#lists.isEmpty(sensors)}" style="padding:40px;text-align:center;background:var(--bg-input);border-radius:16px;border:1px dashed var(--border-light);">
+            <span class="ms" style="font-size:32px;color:var(--text-muted);opacity:0.3;margin-bottom:12px;">hardware</span>
+            <div style="font-size:14px;color:var(--text-main);font-weight:600;">No sensors registered</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Cảm biến sẽ được tự động ghi nhận.</div>
+        </div>
+        
+        <div th:unless="${#lists.isEmpty(sensors)}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+            <div th:each="s : ${sensors}" style="background:var(--bg-input);border:1px solid var(--border-light);border-radius:12px;padding:20px;display:flex;align-items:center;gap:16px;transition:background .2s;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='var(--bg-input)'">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(0,0,0,.03);display:flex;align-items:center;justify-content:center;color:var(--text-muted);">
+                    <span class="ms" style="font-size:20px;">sensors</span>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--text-main);" th:text="${s.sensorName}">Name</div>
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;" th:text="${s.sensorType}">TYPE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script th:inline="javascript">
+    const deviceId = /*[[${device.id}]]*/ 0;
+    
+    let ignoreModeUpdatesUntil = 0;
+    let ignoreRelayUpdatesUntil = {};
+    
+        function updateModeUI(isAuto) {
+        const modeStatus = document.getElementById('status-mode');
+        const btnManual = document.getElementById('btn-mode-manual');
+        const btnAuto = document.getElementById('btn-mode-auto');
+        
+        if (modeStatus) {
+            modeStatus.innerText = isAuto ? 'TỰ ĐỘNG' : 'THỦ CÔNG';
+            modeStatus.style.color = isAuto ? '#10b981' : '#3b82f6';
+        }
+        
+        if (btnAuto && btnManual) {
+            if (isAuto) {
+                btnAuto.style.background = '#10b981';
+                btnAuto.style.color = '#fff';
+                btnManual.style.background = 'transparent';
+                btnManual.style.color = '#859397';
+            } else {
+                btnManual.style.background = '#3b82f6';
+                btnManual.style.color = '#fff';
+                btnAuto.style.background = 'transparent';
+                btnAuto.style.color = '#859397';
+            }
+        }
+        
+                [1, 2, 3].forEach(id => {
+            const r = document.getElementById('toggle-relay' + id);
+            const statusEl = document.getElementById('status-relay' + id);
+            if (r) {
+                if (isAuto) {
+                    r.checked = false;
+                    if (statusEl) {
+                        statusEl.innerText = 'OFF';
+                        statusEl.style.color = 'var(--text-main)';
+                    }
+                }
+                r.disabled = isAuto;
+                r.parentElement.style.opacity = isAuto ? '0.5' : '1';
+            }
+        });
+    }
+
+    function setModeCommand(mode) {
+        const badge = document.getElementById('device-status-badge');
+        if (badge && badge.innerText === 'OFFLINE') {
+            alert("Thiết bị đang OFFLINE. Không thể gửi lệnh điều khiển!");
+            return;
+        }
+        
+        const isAuto = mode === 'AUTO';
+        updateModeUI(isAuto);
+        
+        ignoreModeUpdatesUntil = Date.now() + 3000;
+        
+        let payload = { "mode": mode };
+        if (isAuto) {
+            payload["pump"] = "OFF";
+            payload["valve1"] = "OFF";
+            payload["valve2"] = "OFF";
+        }
+        
+        fetch('/api/device/' + deviceId + '/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(e => console.error(e));
+    }
+
+    function toggleCommand(type, isChecked) {
+        const badge = document.getElementById('device-status-badge');
+        if (badge && badge.innerText === 'OFFLINE') {
+            alert("Thiết bị đang OFFLINE. Không thể gửi lệnh điều khiển!");
+            document.getElementById('toggle-relay' + type).checked = !isChecked;
+            return;
+        }
+        
+        const modeStatus = document.getElementById('status-mode');
+        const isManual = modeStatus && modeStatus.innerText === 'THỦ CÔNG';
+        
+        if (isManual && type === 1 && isChecked) {
+            const valve1 = document.getElementById('toggle-relay2') && document.getElementById('toggle-relay2').checked;
+            const valve2 = document.getElementById('toggle-relay3') && document.getElementById('toggle-relay3').checked;
+            if (!valve1 && !valve2) {
+                alert("Vui lòng mở ít nhất 1 van (Van nước 1 hoặc Van nước 2) trước khi bật máy bơm!");
+                document.getElementById('toggle-relay1').checked = false;
+                return;
+            }
+        }
+        
+        let payload = {};
+        let statusText;
+        
+        ignoreRelayUpdatesUntil[type] = Date.now() + 3000;
+        
+        payload = { "relay": type, "state": isChecked ? "ON" : "OFF" };
+            if (type === 1) payload["pump"] = isChecked ? "ON" : "OFF";
+            if (type === 2) payload["valve1"] = isChecked ? "ON" : "OFF";
+            if (type === 3) payload["valve2"] = isChecked ? "ON" : "OFF";
+            
+            statusText = document.getElementById('status-relay' + type);
+            if(statusText) {
+                statusText.innerText = isChecked ? 'ON' : 'OFF';
+                statusText.style.color = isChecked ? (type === 1 ? '#f43f5e' : '#10b981') : 'var(--text-main)';
+            }
+        
+        fetch('/api/device/' + deviceId + '/control', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Command sent:', data);
+        })
+        .catch(error => {
+            console.error('Error sending command:', error);
+            alert("Lá»—i khi gá»­i lá»‡nh Ä‘iá»u khiá»ƒn. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i máº¡ng.");
+        });
+    }
+        // WebSocket Setup
+    const socket = new SockJS('/ws-iot');
+    const stompClient = Stomp.over(socket);
+    stompClient.debug = null;
+    stompClient.connect({}, function() {
+        stompClient.subscribe('/topic/telemetry-updates', function(msg) {
+                        const data = JSON.parse(msg.body);
+            if (data.deviceId && data.deviceId != deviceId) {
+                return; // Ignore messages for other devices
+            }
+            
+            // Update terminal
+            const stream = document.getElementById('data-stream');
+            const ts = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            
+            // Format nice looking JSON
+            let cleanData = {...data};
+            delete cleanData.deviceId;
+            
+            // Handle status updates
+            if (cleanData.status) {
+                const badge = document.getElementById('device-status-badge');
+                const dot = document.getElementById('device-status-dot');
+                if (cleanData.status === 'OFFLINE') {
+                    if (badge) {
+                        badge.innerText = 'OFFLINE';
+                        badge.style.background = 'rgba(239,68,68,.15)';
+                        badge.style.color = '#f87171';
+                        badge.style.border = '1px solid rgba(239,68,68,.3)';
+                    }
+                    if (dot) {
+                        dot.className = '';
+                        dot.style.background = '#f87171';
+                    }
+                } else if (cleanData.status === 'ONLINE') {
+                    if (badge) {
+                        badge.innerText = 'ONLINE';
+                        badge.style.background = 'rgba(52,211,153,.15)';
+                        badge.style.color = '#34d399';
+                        badge.style.border = '1px solid rgba(52,211,153,.3)';
+                    }
+                    if (dot) {
+                        dot.className = 'pulse-ring';
+                        dot.style.background = '#34d399';
+                    }
+                }
+                delete cleanData.status;
+            }
+            
+            // Sync Mode
+            if (cleanData.mode !== undefined) {
+                if (Date.now() > ignoreModeUpdatesUntil) {
+                    const isAuto = String(cleanData.mode).toUpperCase() === "AUTO";
+                    updateModeUI(isAuto);
+                }
+            }
+            
+            // Sync Relays (handles both relay1/2/3 and pump/valve1/valve2 namings)
+            const relayKeys = [
+                { key: 'relay1', alias: 'pump', id: 1 },
+                { key: 'relay2', alias: 'valve1', id: 2 },
+                { key: 'relay3', alias: 'valve2', id: 3 }
+            ];
+            
+            relayKeys.forEach(r => {
+                let state = cleanData[r.key] !== undefined ? cleanData[r.key] : cleanData[r.alias];
+                if (state !== undefined) {
+                    const ignoreUntil = ignoreRelayUpdatesUntil[r.id] || 0;
+                    if (Date.now() > ignoreUntil) {
+                    const isON = String(state).toUpperCase() === "ON" || state === 1 || state === true || String(state).toUpperCase() === "TRUE";
+                    const toggle = document.getElementById('toggle-relay' + r.id);
+                    const status = document.getElementById('status-relay' + r.id);
+                    if (toggle) toggle.checked = isON;
+                    if (status) {
+                        status.innerText = isON ? 'ON' : 'OFF';
+                        status.style.color = isON ? (r.id === 1 ? '#f43f5e' : '#10b981') : 'var(--text-main)';
+                    }
+                    }
+                }
+            });
+            
+            // Skip rendering empty data (e.g. only status update)
+            if (Object.keys(cleanData).length === 0) return;
+            
+            
+            line.innerHTML = `<span style="color:#859397;">[${ts}]</span> <span style="color:#34d399;">RECV</span> ${JSON.stringify(cleanData)}`;
+            stream.insertBefore(line, stream.firstChild);
+            if (stream.children.length > 50) stream.removeChild(stream.lastChild);
+            
+            // Update time metrics
+            const now = new Date();
+            const dateEl = document.getElementById('metric-receive_date');
+            if (dateEl) {
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = now.getFullYear();
+                dateEl.innerText = `${dd}/${mm}/${yyyy}`;
+            }
+            
+            const timeEl = document.getElementById('metric-receive_time');
+            if (timeEl) {
+                const hh = String(now.getHours()).padStart(2, '0');
+                const min = String(now.getMinutes()).padStart(2, '0');
+                const ss = String(now.getSeconds()).padStart(2, '0');
+                timeEl.innerText = `${hh}:${min}:${ss}`;
+            }
+            
+            // Update UI metrics in real-time
+            for (const [key, val] of Object.entries(cleanData)) {
+                const el = document.getElementById('metric-' + key);
+                if (el) {
+                    if (typeof val === 'number' && !Number.isInteger(val)) {
+                        el.innerText = val.toFixed(2);
+                    } else {
+                        el.innerText = val;
+                    }
+                }
+            }
+            
+            // Update mini chart dynamically
+            if (window.miniChartInstance) {
+                let chartVal = null;
+                // Ưu tiên nhiệt độ, nếu không có thì lấy giá trị đầu tiên
+                if (cleanData['Nhiệt độ'] !== undefined) chartVal = cleanData['Nhiệt độ'];
+                else if (Object.values(cleanData).length > 0) chartVal = Object.values(cleanData)[0];
+                
+                if (chartVal !== null) {
+                    window.miniChartInstance.data.labels.push(ts);
+                    window.miniChartInstance.data.datasets[0].data.push(chartVal);
+                    if (window.miniChartInstance.data.labels.length > 50) {
+                        window.miniChartInstance.data.labels.shift();
+                        window.miniChartInstance.data.datasets[0].data.shift();
+                    }
+                    window.miniChartInstance.update();
+                }
+            }
+        });
+    });
+
+    // Chart initialization with real data
+    const hasData = /*[[${not #lists.isEmpty(latestReadings)}]]*/ false;
+    
+    // Parse real data from backend
+    const chartLabels = JSON.parse(/*[[${chartLabels != null ? chartLabels : '[]'}]]*/ '[]');
+    const chartData = JSON.parse(/*[[${chartData != null ? chartData : '[]'}]]*/ '[]');
+
+    if (hasData && chartLabels.length > 0) {
+        const ctx = document.getElementById('miniChart');
+        if (ctx) {
+            window.miniChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Live Activity',
+                        data: chartData,
+                        borderColor: '#b31d1d',
+                        backgroundColor: 'rgba(179,29,29,0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#b31d1d',
+                        pointBorderWidth: 2,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', font: { family: "'Inter', sans-serif", size: 10 } } },
+                        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', font: { family: "'Inter', sans-serif", size: 10 } } }
+                    },
+                    animation: { duration: 400 }
+                }
+            });
+        }
+    }
+    
+    // Sidebar Toggle
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+    }
+</script>
+
+<!-- ===== THRESHOLD MODAL ===== -->
+<div id="threshold-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px;width:min(640px,95vw);max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-.02em;">
+          <span style="font-family:'Material Symbols Outlined';font-size:22px;vertical-align:middle;margin-right:8px;color:#b31d1d;">tune</span>
+          Đặt ngưỡng cảm biến
+        </h2>
+        <p id="th-sensor-label" style="font-size:13px;color:#64748b;margin-top:4px;font-weight:600;"></p>
+      </div>
+      <button onclick="closeThresholdModal()" style="background:none;border:none;cursor:pointer;color:#64748b;padding:4px;border-radius:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+        <span style="font-family:'Material Symbols Outlined';font-size:24px;">close</span>
+      </button>
+    </div>
+
+    <!-- Info -->
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#92400e;line-height:1.6;">
+      <strong>💡 Hướng dẫn:</strong> Định nghĩa các dải ngưỡng (zone) từ 0 đến 100. Mỗi dải có tên tự đặt và màu hiển thị.<br>
+      Ví dụ Nhiệt độ: <em>Quá lạnh (0–25)</em> | <em>Bình thường (25–35)</em> | <em>Quá nóng (35–100)</em>
+    </div>
+
+    <!-- Zone List -->
+    <div id="th-zones-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
+
+    <!-- Add Zone Button -->
+    <button onclick="addZone()" style="width:100%;padding:10px;border:2px dashed #e2e8f0;border-radius:10px;background:none;cursor:pointer;color:#64748b;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;" onmouseover="this.style.borderColor='#b31d1d';this.style.color='#b31d1d'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b'">
+      <span style="font-family:'Material Symbols Outlined';font-size:18px;">add</span> Thêm dải ngưỡng
+    </button>
+
+    <!-- Live Preview -->
+    <div style="margin-top:20px;">
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Xem trước</div>
+      <div id="th-preview-bar" style="height:32px;border-radius:10px;overflow:hidden;display:flex;background:#f1f5f9;border:1px solid #e2e8f0;"></div>
+      <div id="th-preview-labels" style="display:flex;margin-top:6px;gap:4px;flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end;flex-wrap:wrap;">
+      <button onclick="clearThresholds()" style="padding:10px 20px;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+        <span style="font-family:'Material Symbols Outlined';font-size:16px;vertical-align:middle;margin-right:4px;">delete</span>Xóa tất cả
+      </button>
+      <button onclick="closeThresholdModal()" style="padding:10px 20px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">Hủy</button>
+      <button onclick="saveThresholds()" style="padding:10px 24px;background:#b31d1d;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='#b31d1d'">
+        <span style="font-family:'Material Symbols Outlined';font-size:16px;vertical-align:middle;margin-right:4px;">save</span>Lưu ngưỡng
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== THRESHOLD INDICATOR (on sensor cards) ===== -->
+<style>
+  .threshold-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 6px;
+    letter-spacing: .05em;
+  }
+  .metric-card .th-set-hint {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 9px;
+    color: #b31d1d;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: .08em;
+    opacity: 0.7;
+  }
+  .metric-card:hover .th-set-hint { opacity: 1; }
+</style>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+// ===== THRESHOLD SYSTEM =====
+const DEVICE_ID = /*[[${device.id}]]*/ 0;
+
+// Load existing thresholds from server-side render
+let allThresholds = {};
+try {
+  allThresholds = /*[[${thresholdsJson != null ? thresholdsJson : '{}'}]]*/ {};
+  // Normalize: server returns List<SensorThreshold> per key
+  for (const key in allThresholds) {
+    if (!Array.isArray(allThresholds[key])) allThresholds[key] = [];
+  }
+} catch(e) { allThresholds = {}; }
+
+let currentSensor = null;
+const DEFAULT_COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316'];
+
+// ── Tạo hint badge trên card metric
+function renderAllThresholdBadges() {
+  document.querySelectorAll('[data-sensor]').forEach(card => {
+    const sName = card.getAttribute('data-sensor');
+    const valueEl = card.querySelector('.mono');
+    if (!valueEl) return;
+    // Remove old badge
+    const oldBadge = card.querySelector('.threshold-badge');
+    if (oldBadge) oldBadge.remove();
+    // Add hint text
+    if (!card.querySelector('.th-set-hint')) {
+      const hint = document.createElement('div');
+      hint.className = 'th-set-hint';
+      hint.innerHTML = '<span style="font-family:Material Symbols Outlined;font-size:11px;vertical-align:middle;">tune</span> Đặt ngưỡng';
+      card.appendChild(hint);
+    }
+    // Colorize value based on threshold
+    applyThresholdColor(sName, parseFloat(valueEl.innerText), valueEl);
+    // Show zone badge
+    const zones = allThresholds[sName];
+    if (zones && zones.length > 0) {
+      const val = parseFloat(valueEl.innerText);
+      const zone = zones.find(z => val >= z.minValue && val < z.maxValue) 
+                || zones[zones.length-1];
+      if (zone) {
+        const badge = document.createElement('div');
+        badge.className = 'threshold-badge';
+        badge.style.background = hexToRgba(zone.color || '#64748b', 0.15);
+        badge.style.color = zone.color || '#64748b';
+        badge.style.border = '1px solid ' + hexToRgba(zone.color || '#64748b', 0.3);
+        badge.innerText = zone.label;
+        valueEl.parentElement.appendChild(badge);
+      }
+    }
+  });
+}
+
+function applyThresholdColor(sensorName, value, el) {
+  const zones = allThresholds[sensorName];
+  if (!zones || zones.length === 0 || isNaN(value)) {
+    el.style.color = 'var(--text-main)';
+    return;
+  }
+  const zone = zones.find(z => value >= z.minValue && value < z.maxValue) 
+             || zones[zones.length-1];
+  if (zone) el.style.color = zone.color || 'var(--text-main)';
+}
+
+function hexToRgba(hex, alpha) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return `rgba(100,116,139,${alpha})`;
+  return `rgba(${parseInt(result[1],16)},${parseInt(result[2],16)},${parseInt(result[3],16)},${alpha})`;
+}
+
+// ── Open modal
+function openThresholdModal(sensorName) {
+  currentSensor = sensorName;
+  document.getElementById('th-sensor-label').innerText = 'Cảm biến: ' + sensorName;
+  const modal = document.getElementById('threshold-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  // Load zones
+  renderZones(allThresholds[sensorName] || []);
+  updatePreview();
+}
+
+function closeThresholdModal() {
+  document.getElementById('threshold-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  currentSensor = null;
+}
+
+// ── Render zones in editor
+function renderZones(zones) {
+  const list = document.getElementById('th-zones-list');
+  list.innerHTML = '';
+  zones.forEach((z, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:grid;grid-template-columns:1fr 90px 90px 44px 32px;gap:8px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;';
+    row.innerHTML = `
+      <div>
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Tên dải</div>
+        <input type="text" placeholder="VD: Bình thường" value="${z.label || ''}" 
+          oninput="updateZone(${i}, 'label', this.value);updatePreview()"
+          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:13px;font-weight:600;background:#fff;outline:none;"
+          onfocus="this.style.borderColor='#b31d1d'" onblur="this.style.borderColor='#e2e8f0'"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Từ</div>
+        <input type="number" step="0.1" min="0" max="100" value="${z.minValue ?? 0}"
+          oninput="updateZone(${i}, 'minValue', parseFloat(this.value)||0);updatePreview()"
+          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:13px;font-weight:600;background:#fff;outline:none;"
+          onfocus="this.style.borderColor='#b31d1d'" onblur="this.style.borderColor='#e2e8f0'"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Đến</div>
+        <input type="number" step="0.1" min="0" max="100" value="${z.maxValue ?? 100}"
+          oninput="updateZone(${i}, 'maxValue', parseFloat(this.value)||100);updatePreview()"
+          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:13px;font-weight:600;background:#fff;outline:none;"
+          onfocus="this.style.borderColor='#b31d1d'" onblur="this.style.borderColor='#e2e8f0'"/>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Màu</div>
+        <input type="color" value="${z.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]}"
+          oninput="updateZone(${i}, 'color', this.value);updatePreview()"
+          style="width:36px;height:32px;border:1px solid #e2e8f0;border-radius:6px;padding:2px;cursor:pointer;background:#fff;"/>
+      </div>
+      <div style="padding-top:18px;">
+        <button onclick="removeZone(${i})" style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:4px;cursor:pointer;color:#ef4444;display:flex;align-items:center;"
+          onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+          <span style="font-family:'Material Symbols Outlined';font-size:16px;">delete</span>
+        </button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ── Get current zones from DOM inputs
+function getZonesFromDOM() {
+  const rows = document.getElementById('th-zones-list').children;
+  const zones = [];
+  Array.from(rows).forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    zones.push({
+      label: inputs[0].value.trim() || 'Zone',
+      minValue: parseFloat(inputs[1].value) || 0,
+      maxValue: parseFloat(inputs[2].value) || 100,
+      color: inputs[3].value || '#64748b',
+    });
+  });
+  return zones;
+}
+
+function updateZone(idx, field, val) {
+  // Reactive update happens via oninput on inputs
+}
+
+function addZone() {
+  const zones = getZonesFromDOM();
+  const lastMax = zones.length > 0 ? (zones[zones.length-1].maxValue || 100) : 0;
+  zones.push({ label: '', minValue: lastMax, maxValue: 100, color: DEFAULT_COLORS[zones.length % DEFAULT_COLORS.length] });
+  renderZones(zones);
+  updatePreview();
+}
+
+function removeZone(idx) {
+  const zones = getZonesFromDOM();
+  zones.splice(idx, 1);
+  renderZones(zones);
+  updatePreview();
+}
+
+function updatePreview() {
+  const zones = getZonesFromDOM();
+  const bar = document.getElementById('th-preview-bar');
+  const labels = document.getElementById('th-preview-labels');
+  bar.innerHTML = '';
+  labels.innerHTML = '';
+  const total = 100;
+  zones.forEach(z => {
+    const width = Math.max(0, Math.min(100, z.maxValue - z.minValue));
+    const seg = document.createElement('div');
+    seg.style.cssText = `flex:${width};background:${z.color};display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;min-width:2px;`;
+    if (width > 10) seg.innerText = z.label;
+    bar.appendChild(seg);
+    // Label pill
+    const pill = document.createElement('div');
+    pill.style.cssText = `display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;`;
+    pill.innerHTML = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${z.color}"></span>${z.label} (${z.minValue}–${z.maxValue})`;
+    labels.appendChild(pill);
+  });
+}
+
+async function saveThresholds() {
+  const zones = getZonesFromDOM();
+  if (zones.length === 0) {
+    await clearThresholds();
+    return;
+  }
+  // Validate
+  for (const z of zones) {
+    if (!z.label) { alert('Vui lòng đặt tên cho tất cả các dải!'); return; }
+    if (z.minValue >= z.maxValue) { alert(`Dải "${z.label}": Giá trị "Từ" phải nhỏ hơn "Đến"!`); return; }
+  }
+  try {
+    const res = await fetch(`/api/device/${DEVICE_ID}/thresholds?sensorName=${encodeURIComponent(currentSensor)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(zones)
+    });
+    if (!res.ok) throw new Error('Server error');
+    allThresholds[currentSensor] = zones;
+    closeThresholdModal();
+    renderAllThresholdBadges();
+    showToastOk(`Đã lưu ${zones.length} dải ngưỡng cho ${currentSensor}`);
+  } catch(e) {
+    alert('Lỗi khi lưu ngưỡng: ' + e.message);
+  }
+}
+
+async function clearThresholds() {
+  if (!confirm(`Xóa toàn bộ ngưỡng của ${currentSensor}?`)) return;
+  try {
+    await fetch(`/api/device/${DEVICE_ID}/thresholds?sensorName=${encodeURIComponent(currentSensor)}`, { method: 'DELETE' });
+    delete allThresholds[currentSensor];
+    closeThresholdModal();
+    renderAllThresholdBadges();
+    showToastOk(`Đã xóa ngưỡng của ${currentSensor}`);
+  } catch(e) {
+    alert('Lỗi khi xóa ngưỡng: ' + e.message);
+  }
+}
+
+function showToastOk(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10b981;color:#fff;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeIn .2s;';
+  t.innerText = '✓ ' + msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// Close modal on backdrop click
+document.getElementById('threshold-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeThresholdModal();
+});
+
+// Hook into existing WebSocket metric updates to apply threshold colors
+const _origMetricUpdate = window.__metricUpdateHook;
+window.__metricUpdateHook = function(key, val) {
+  const el = document.getElementById('metric-' + key);
+  if (el) applyThresholdColor(key, parseFloat(val), el);
+};
+
+// Initial render after page load
+document.addEventListener('DOMContentLoaded', () => {
+  // Make sensor metric cards clickable
+  document.querySelectorAll('[data-sensor]').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function() {
+      openThresholdModal(this.getAttribute('data-sensor'));
+    });
+  });
+  renderAllThresholdBadges();
+});
+// Also run immediately (DOMContentLoaded may have already fired)
+if (document.readyState !== 'loading') {
+  document.querySelectorAll('[data-sensor]').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function() {
+      openThresholdModal(this.getAttribute('data-sensor'));
+    });
+  });
+  renderAllThresholdBadges();
+}
+/*]]>*/
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
