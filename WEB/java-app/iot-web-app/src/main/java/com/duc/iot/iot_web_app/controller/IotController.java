@@ -1,4 +1,4 @@
-﻿package com.duc.iot.iot_web_app.controller;
+package com.duc.iot.iot_web_app.controller;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
