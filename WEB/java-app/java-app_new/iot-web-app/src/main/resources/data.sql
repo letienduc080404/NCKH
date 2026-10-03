@@ -1,3 +1,0 @@
--- Database initialization is disabled (spring.sql.init.mode=never).
--- Tables are created automatically by Hibernate (spring.jpa.hibernate.ddl-auto=update).
--- Initial data (admin user) is seeded via DataInitializer.java on first startup.

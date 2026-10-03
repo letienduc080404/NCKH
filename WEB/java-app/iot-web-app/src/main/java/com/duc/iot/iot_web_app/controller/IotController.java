@@ -1,4 +1,4 @@
-package com.duc.iot.iot_web_app.controller;
+﻿package com.duc.iot.iot_web_app.controller;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -436,7 +436,7 @@ public class IotController {
 
         java.io.PrintWriter writer = response.getWriter();
         writer.write('\ufeff');
-        writer.println("NgÃ y,Thá»i gian,TÃªn cáº£m biáº¿n,Äá»™ áº©m Ä‘áº¥t 1,Äá»™ áº©m Ä‘áº¥t 2,Äá»™ áº©m khÃ´ng khÃ­,Nhiá»‡t Ä‘á»™,Cháº¿ Ä‘á»™,MÃ¡y bÆ¡m,Van 1,Van 2");
+        writer.println("NgÃ y,Thá»i gian,TÃªn cáº£m biáº¿n,Äá»™ áº©m Ä‘áº¥t 1,Äá»™ áº©m Ä‘áº¥t 2,Äá»™ áº©m khÃ´ng khÃ­,Nhiệt độ,Chế độ,Máy bơm,Van 1,Van 2");
 
         Device device = deviceOpt.get();
         if (device.getSensors() != null) {
@@ -465,9 +465,9 @@ public class IotController {
                 String soil1 = vals.containsKey("Äá»™ áº©m Ä‘áº¥t 1") ? String.valueOf(vals.get("Äá»™ áº©m Ä‘áº¥t 1")) : (vals.containsKey("Äá»™ áº©m Ä‘áº¥t") ? String.valueOf(vals.get("Äá»™ áº©m Ä‘áº¥t")) : "");
                 String soil2 = vals.containsKey("Äá»™ áº©m Ä‘áº¥t 2") ? String.valueOf(vals.get("Äá»™ áº©m Ä‘áº¥t 2")) : "";
                 String hum = vals.containsKey("Äá»™ áº©m khÃ´ng khÃ­") ? String.valueOf(vals.get("Äá»™ áº©m khÃ´ng khÃ­")) : "";
-                String temp = vals.containsKey("Nhiá»‡t Ä‘á»™") ? String.valueOf(vals.get("Nhiá»‡t Ä‘á»™")) : "";
-                String mode = vals.containsKey("Cháº¿ Ä‘á»™") ? (Double.valueOf(1.0).equals(vals.get("Cháº¿ Ä‘á»™")) ? "AUTO" : "MANUAL") : "";
-                String pump = vals.containsKey("MÃ¡y bÆ¡m") ? (Double.valueOf(1.0).equals(vals.get("MÃ¡y bÆ¡m")) ? "ON" : "OFF") : "";
+                String temp = vals.containsKey("Nhiệt độ") ? String.valueOf(vals.get("Nhiệt độ")) : "";
+                String mode = vals.containsKey("Chế độ") ? (Double.valueOf(1.0).equals(vals.get("Chế độ")) ? "AUTO" : "MANUAL") : "";
+                String pump = vals.containsKey("Máy bơm") ? (Double.valueOf(1.0).equals(vals.get("Máy bơm")) ? "ON" : "OFF") : "";
                 String valve1 = vals.containsKey("Van 1") ? (Double.valueOf(1.0).equals(vals.get("Van 1")) ? "ON" : "OFF") : "";
                 String valve2 = vals.containsKey("Van 2") ? (Double.valueOf(1.0).equals(vals.get("Van 2")) ? "ON" : "OFF") : "";
                 writer.println(dateStr + "," + timeStr + "," + deviceName + "," + soil1 + "," + soil2 + "," + hum + "," + temp + "," + mode + "," + pump + "," + valve1 + "," + valve2);
@@ -505,7 +505,7 @@ public class IotController {
      *   GET /api/v1/{deviceToken}/thresholds
      * Response:
      * {
-     *   "Nhiá»‡t Ä‘á»™": [{"label":"QuÃ¡ láº¡nh","min":0,"max":25,"color":"#3b82f6"}, ...],
+     *   "Nhiệt độ": [{"label":"QuÃ¡ láº¡nh","min":0,"max":25,"color":"#3b82f6"}, ...],
      *   "Äá»™ áº©m Ä‘áº¥t 1": [...]
      * }
      */
@@ -544,7 +544,7 @@ public class IotController {
      * Payload gá»­i vá» ESP32:
      * {
      *   "cmd": "set_thresholds",
-     *   "sensor": "Nhiá»‡t Ä‘á»™",
+     *   "sensor": "Nhiệt độ",
      *   "zones": [
      *     {"label":"QuÃ¡ láº¡nh","min":0,"max":25,"color":"#3b82f6"},
      *     {"label":"BÃ¬nh thÆ°á»ng","min":25,"max":35,"color":"#10b981"},
@@ -630,11 +630,11 @@ public class IotController {
      * Payload JSON compact:
      * {
      *   "cmd": "set_thresholds",
-     *   "sensor": "Nhiá»‡t Ä‘á»™",
+     *   "sensor": "Nhiệt độ",
      *   "zones": [{"label":"...","min":0.0,"max":25.0,"color":"#3b82f6"}, ...]
      * }
      * Náº¿u zones rá»—ng â†’ gá»­i lá»‡nh clear:
-     * { "cmd": "clear_thresholds", "sensor": "Nhiá»‡t Ä‘á»™" }
+     * { "cmd": "clear_thresholds", "sensor": "Nhiệt độ" }
      *
      * @return true náº¿u publish thÃ nh cÃ´ng
      */
@@ -674,3 +674,4 @@ public class IotController {
         }
     }
 }
+
