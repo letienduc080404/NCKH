@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title th:text="'IOT_SENTRY | ' + ${device.deviceName}">IOT_SENTRY | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-body: #f1f5f9;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --bg-input: #f8f9fa;
+            --border-light: #e2e8f0;
+            --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --color-ptit: #b31d1d;
+            --status-online: #10b981;
+            --status-offline: #ef4444;
+        }
+        body { background: var(--bg-body); color: var(--text-main); font-family: 'Inter', system-ui, sans-serif; }
+        .glass { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; box-shadow: var(--card-shadow); }
+        .sidebar-link { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; color:var(--text-muted); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.15em; text-decoration:none; transition:all .2s; }
+        .sidebar-link:hover { background: var(--bg-input); color: var(--color-ptit); }
+        .sidebar-link.active { background: rgba(179, 29, 29, 0.08); color: var(--color-ptit); border-left: 3px solid var(--color-ptit); border-radius: 0 8px 8px 0; }
+        .metric-card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 8px; padding: 24px; transition: all .3s ease; position: relative; overflow: hidden; box-shadow: var(--card-shadow); }
+        .metric-card:hover { border-color: var(--color-ptit); transform: translateY(-2px);}
+        .mono { font-family:'JetBrains Mono',monospace; }
+        .ms { font-family:'Material Symbols Outlined'; font-size:20px; font-weight:400; font-style:normal; line-height:1; }
+        pre { white-space: pre-wrap; word-break: break-all; }
+        .pulse-ring { position: relative; display: flex; justify-content: center; align-items: center; }
+        .pulse-ring::before { content: ''; position: absolute; width: 100%; height: 100%; border-radius: 50%; background-color: inherit; animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite; opacity: 0.6; z-index: -1; }
+        @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-body); }
+        ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+        @media (max-width: 768px) {
+            h1 { font-size: 26px !important; line-height: 1.2 !important; }
+            .glass { padding: 16px !important; }
+            .metric-card { padding: 16px !important; }
+            .mono { font-size: 24px !important; }
+        }
+    </style>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}"/>
+</head>
+<body class="app-page home-page">
+
+<!-- Mobile Overlay -->
+<div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+
+<aside id="sidebar" style="z-index:50; background: var(--bg-sidebar); border-right: 1px solid var(--border-light);" class="flex flex-col fixed left-0 top-0 w-[240px] h-[100vh] p-[24px_16px] transition-transform duration-300 -translate-x-full lg:translate-x-0">
+    <div style="margin-bottom:32px;padding:0 8px;display:flex;align-items:center;gap:14px;">
+        <div style="width:42px;height:42px;flex-shrink:0;display:flex;justify-content:center;align-items:center;overflow:hidden;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/13/Logo_PTIT_University.png" alt="PTIT Logo" style="width:130%;height:130%;object-fit:contain;"/>
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:center;">
+            <div style="font-size:18px;font-weight:900;color:var(--text-main);letter-spacing:-.03em;line-height:1;">IOT_SENTRY</div>
+            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.15em;margin-top:5px;font-weight:700;">DEVICE CONTROL</div>
+            <div style="font-size:8px;color:var(--text-muted);margin-top:2px;">by Duc Le - PTIT</div>
+        </div>
+    </div>
+    <nav style="display:flex;flex-direction:column;gap:4px;flex:1;">
+        <a href="/" class="sidebar-link"><span class="ms">dashboard</span>Bảng điều khiển</a>
+        <a href="/devices" class="sidebar-link active"><span class="ms">developer_board</span>Thiết bị</a>
+        <a th:href="@{'/analytics/' + ${device.id}}" class="sidebar-link"><span class="ms">query_stats</span>Thống kê</a>
+        <a href="/settings" class="sidebar-link"><span class="ms">tune</span>Cập nhật OTA</a>
+    </nav>
+    <div style="padding-top:16px;border-top:1px solid rgba(255,255,255,.05);">
+        <a href="/devices" class="sidebar-link"><span class="ms">arrow_back</span>Tất cả thiết bị</a>
+    </div>
+    <div style="margin-top:auto;padding-top:20px;text-align:center;">
+            <div th:if="${#authorization.expression('isAuthenticated()')}" style="margin-bottom: 16px; display:flex; align-items:center; justify-content:center; gap: 8px; background:var(--bg-input); padding: 8px; border-radius: 8px;">
+                <div style="width:24px; height:24px; background:var(--color-ptit); border-radius:50%; color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">
+                    <span th:text="${#authentication.name.substring(0,1).toUpperCase()}">U</span>
+                </div>
+                <span style="font-size:12px; font-weight:700; color:var(--text-main);" th:text="${#authentication.name}">admin</span>
+                <form th:action="@{/logout}" method="post" style="display:inline; margin-left:auto;">
+                    <button type="submit" style="background:none;border:none;cursor:pointer;color:var(--status-offline);display:flex;align-items:center;padding:4px;" title="Đăng xuất">
+                        <span class="ms" style="font-size:16px;">logout</span>
+                    </button>
+                </form>
+            </div>
+        <div style="font-size:8px;color:#859397;line-height:1.5;text-transform:uppercase;letter-spacing:.1em;">Học Viện Công Nghệ Bưu Chính Viễn Thông<br>Cơ Sở Tại TP. Hồ Chí Minh</div>
+    </div>
+</aside>
+
+<main class="lg:ml-[240px] p-6 lg:p-8 min-h-screen flex flex-col gap-6">
+    <!-- Mobile Header -->
+    <div class="lg:hidden flex justify-between items-center">
+        <div style="font-size:18px;font-weight:900;color:var(--text-main);">IOT_SENTRY</div>
+        <button onclick="toggleSidebar()" class="glass p-2 rounded-lg" style="color:var(--text-main);">
+            <span class="ms">menu</span>
+        </button>
+    </div>
+
+    <!-- Device Header -->
+    <div class="glass" style="border-radius:24px;padding:40px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-100px;right:-50px;width:300px;height:300px;background:radial-gradient(circle,rgba(179,29,29,.05),transparent 70%);border-radius:50%;"></div>
+        <div style="position:absolute;bottom:-100px;left:20%;width:400px;height:400px;background:radial-gradient(circle,rgba(16,185,129,.05),transparent 70%);border-radius:50%;"></div>
+        
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:24px;position:relative;z-index:10;">
+            <div style="display:flex;align-items:center;gap:24px;">
+                <div style="width:72px;height:72px;border-radius:20px;background:var(--bg-input);border:1px solid var(--border-light);display:flex;align-items:center;justify-content:center;color:var(--text-main);box-shadow:var(--card-shadow);">
+                    <span class="ms" style="font-size:36px;">developer_board</span>
+                </div>
+                <div>
+                    <h1 style="font-size:42px;font-weight:900;color:var(--text-main);letter-spacing:-.03em;line-height:1.1;" th:text="${device.deviceName}">Device Name</h1>
+                    <div style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+                        <span id="device-status-dot" th:class="${device.status != null and device.status.name() == 'ONLINE'} ? 'pulse-ring' : ''" 
+                              style="width:8px;height:8px;border-radius:50%;display:inline-block;"
+                              th:styleappend="${device.status != null and device.status.name() == 'ONLINE'} ? 'background:#34d399;' : 'background:#f87171;'"></span>
+                        <span style="font-size:12px;color:#859397;text-transform:uppercase;letter-spacing:.2em;font-weight:700;"
+                              th:text="${(device.category != null ? device.category : 'IoT Device') + ' • ' + (device.location != null ? device.location : 'Unknown')}">Category • Location</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg-input);padding:12px;border-radius:16px;border:1px solid var(--border-light);">
+                <div style="padding:4px 16px;border-right:1px solid var(--border-light);">
+                    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;font-weight:800;">Mã kết nối (Token)</div>
+                    <span class="mono" style="color:var(--text-main);font-size:14px;font-weight:600;" th:text="${device.deviceUid}">0</span>
+                </div>
+                <div style="padding:4px 16px;border-right:1px solid var(--border-light);">
+                    <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Địa chỉ IP</div>
+                    <span class="mono" style="color:var(--text-muted);font-size:14px;font-weight:600;" th:text="${device.ipAddress != null ? device.ipAddress : '0.0.0.0'}">N/A</span>
+                </div>
+                <div style="padding:4px 12px;">
+                    <span id="device-status-badge" th:style="${device.status != null and device.status.name() == 'ONLINE'} ? 'background:rgba(16,185,129,.15);color:var(--status-online);border:1px solid rgba(16,185,129,.3);padding:6px 16px;border-radius:20px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;' : 'background:rgba(239,68,68,.15);color:var(--status-offline);border:1px solid rgba(239,68,68,.3);padding:6px 16px;border-radius:20px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;'"
+                          th:text="${device.status != null ? device.status : 'OFFLINE'}">ONLINE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/home-metrics :: dashboardMetrics}"></div>
+
+    <!-- Empty State for Sensors & Telemetry Stream -->
+    <div class="flex flex-col xl:grid xl:grid-cols-[1fr_400px] gap-6 items-start">
+        
+        <!-- Interactive Chart Placeholder / Activity -->
+        <div class="glass" style="border-radius:20px;padding:32px;height:100%;min-height:360px;display:flex;flex-direction:column;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+                <div>
+                    <h2 style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-.02em;">Telemetry Activity</h2>
+                    <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">Live visualization of incoming data</p>
+                </div>
+                <a th:href="'/analytics/' + ${device.id}" style="padding:8px 16px;background:var(--bg-input);border-radius:8px;font-size:11px;font-weight:700;color:var(--text-main);text-decoration:none;transition:all .2s;border:1px solid var(--border-light);" onmouseover="this.style.borderColor='var(--color-ptit)'" onmouseout="this.style.borderColor='var(--border-light)'">
+                    XEM CHI TIếT <span class="ms" style="font-size:14px;vertical-align:middle;margin-left:4px;">arrow_forward</span>
+                </a>
+            </div>
+            
+            <div th:if="${#lists.isEmpty(latestReadings)}" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-input);border-radius:12px;border:1px dashed var(--border-light);">
+                <div style="width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.03);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
+                    <span class="ms" style="font-size:32px;color:var(--text-muted);opacity:0.3;">monitoring</span>
+                </div>
+                <div style="font-size:14px;font-weight:600;color:var(--text-muted);">No telemetry data available yet</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:8px;max-width:250px;text-align:center;">
+                    Biểu đồ sẽ tự động hiển thị khi thiết bị gửi dữ liệu lên.
+                </div>
+            </div>
+            
+            <div th:unless="${#lists.isEmpty(latestReadings)}" style="flex:1;position:relative;background:var(--bg-input);border-radius:12px;padding:16px;border:1px solid var(--border-light);">
+                <canvas id="miniChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Terminal Stream -->
+        <div class="glass" style="border-radius:20px;overflow:hidden;border:1px solid var(--border-light);box-shadow:var(--card-shadow);">
+            <div style="background:var(--bg-input);padding:16px 20px;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <div style="display:flex;gap:6px;">
+                        <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;"></div>
+                        <div style="width:10px;height:10px;border-radius:50%;background:#eab308;"></div>
+                        <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;"></div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.1em;font-family:'JetBrains Mono',monospace;">node_stream_live</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span class="pulse-ring" style="width:6px;height:6px;border-radius:50%;background:var(--status-online);display:inline-block;"></span>
+                    <span style="font-size:10px;color:var(--status-online);text-transform:uppercase;font-weight:700;letter-spacing:.1em;">Live</span>
+                </div>
+            </div>
+            <div id="data-stream" style="background:#f8f9fa;padding:20px;height:300px;overflow-y:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-main);line-height:1.7;">
+                <div style="color:var(--text-muted);margin-bottom:8px;">> System initialized. Waiting for payloads on topic <span style="color:var(--color-ptit);">/api/v1/[[${device.deviceUid}]]/telemetry</span>...</div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Registered Sensors Panel -->
+    <div class="glass" style="border-radius:20px;padding:32px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <h2 style="font-size:16px;font-weight:800;color:var(--text-main);letter-spacing:-.02em;">Hardware Configuration</h2>
+        </div>
+        
+        <div th:if="${#lists.isEmpty(sensors)}" style="padding:40px;text-align:center;background:var(--bg-input);border-radius:16px;border:1px dashed var(--border-light);">
+            <span class="ms" style="font-size:32px;color:var(--text-muted);opacity:0.3;margin-bottom:12px;">hardware</span>
+            <div style="font-size:14px;color:var(--text-main);font-weight:600;">No sensors registered</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Cảm biến sẽ được tự động ghi nhận.</div>
+        </div>
+        
+        <div th:unless="${#lists.isEmpty(sensors)}" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;">
+            <div th:each="s : ${sensors}" style="background:var(--bg-input);border:1px solid var(--border-light);border-radius:12px;padding:20px;display:flex;align-items:center;gap:16px;transition:background .2s;" onmouseover="this.style.background='var(--bg-card)'" onmouseout="this.style.background='var(--bg-input)'">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(0,0,0,.03);display:flex;align-items:center;justify-content:center;color:var(--text-muted);">
+                    <span class="ms" style="font-size:20px;">sensors</span>
+                </div>
+                <div>
+                    <div style="font-size:14px;font-weight:700;color:var(--text-main);" th:text="${s.sensorName}">Name</div>
+                    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px;" th:text="${s.sensorType}">TYPE</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="command-feedback" role="status" aria-live="polite"
+     style="display:none;position:fixed;right:24px;bottom:24px;z-index:1000;min-width:260px;max-width:380px;padding:14px 18px;border-radius:14px;background:#172033;color:#fff;box-shadow:0 14px 40px rgba(15,23,42,.25);font-size:14px;font-weight:700;"></div>
+
+<script th:inline="javascript">
+    const deviceId = /*[[${device.id}]]*/ 0;
+    
+    let ignoreModeUpdatesUntil = 0;
+    let pendingModeCommand = null;
+    const pendingRelayCommands = {};
+    const RELAY_CONFIRM_TIMEOUT_MS = 20000;
+    let commandFeedbackTimer = null;
+
+    function showCommandFeedback(message, kind) {
+        const box = document.getElementById('command-feedback');
+        if (!box) return;
+        const colors = {
+            success: '#059669',
+            error: '#dc2626',
+            pending: '#2563eb'
+        };
+        box.style.background = colors[kind] || '#172033';
+        box.textContent = message;
+        box.style.display = 'block';
+        clearTimeout(commandFeedbackTimer);
+        commandFeedbackTimer = setTimeout(() => box.style.display = 'none', 3500);
+    }
+    
+        function updateModeUI(isAuto) {
+        const modeStatus = document.getElementById('status-mode');
+        const btnManual = document.getElementById('btn-mode-manual');
+        const btnAuto = document.getElementById('btn-mode-auto');
+        
+        if (modeStatus) {
+            modeStatus.innerText = isAuto ? 'TỰ ĐỘNG' : 'THỦ CÔNG';
+            modeStatus.style.color = isAuto ? '#10b981' : '#3b82f6';
+        }
+        
+        if (btnAuto && btnManual) {
+            if (isAuto) {
+                btnAuto.style.background = '#10b981';
+                btnAuto.style.color = '#fff';
+                btnManual.style.background = 'transparent';
+                btnManual.style.color = '#859397';
+            } else {
+                btnManual.style.background = '#3b82f6';
+                btnManual.style.color = '#fff';
+                btnAuto.style.background = 'transparent';
+                btnAuto.style.color = '#859397';
+            }
+        }
+        
+        [1, 2].forEach(id => {
+            const r = document.getElementById('toggle-relay' + id);
+            const statusEl = document.getElementById('status-relay' + id);
+            if (r) {
+                if (isAuto) {
+                    r.checked = false;
+                    if (statusEl) {
+                        statusEl.innerText = 'OFF';
+                        statusEl.style.color = 'var(--text-main)';
+                    }
+                }
+                r.disabled = isAuto;
+                r.parentElement.style.opacity = isAuto ? '0.5' : '1';
+            }
+        });
+    }
+
+    function setModeCommand(mode) {
+        const badge = document.getElementById('device-status-badge');
+        if (badge && badge.innerText === 'OFFLINE') {
+            alert("Thiết bị đang OFFLINE. Không thể gửi lệnh điều khiển!");
+            return;
+        }
+        
+        const isAuto = mode === 'AUTO';
+        updateModeUI(isAuto);
+        pendingModeCommand = mode;
+        const modeStatus = document.getElementById('status-mode');
+        if (modeStatus) modeStatus.innerText = 'ĐANG CHUYỂN…';
+        
+        ignoreModeUpdatesUntil = Date.now() + 3000;
+        
+        const payload = { "mode": mode };
+        
+        fetch('/api/device/' + deviceId + '/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(e => console.error(e));
+    }
+
+    function toggleIrrigationCommand(zone, isChecked) {
+        const badge = document.getElementById('device-status-badge');
+        if (badge && badge.innerText === 'OFFLINE') {
+            alert("Thiết bị đang OFFLINE. Không thể gửi lệnh điều khiển!");
+            document.getElementById('toggle-relay' + zone).checked = !isChecked;
+            return;
+        }
+        
+        pendingRelayCommands[zone] = {
+            desiredOn: isChecked,
+            previousOn: !isChecked,
+            expiresAt: Date.now() + RELAY_CONFIRM_TIMEOUT_MS
+        };
+
+        // STM32 only waters one zone at a time. Starting one zone stops the other.
+        if (isChecked) {
+            const otherZone = zone === 1 ? 2 : 1;
+            pendingRelayCommands[otherZone] = {
+                desiredOn: false,
+                expiresAt: Date.now() + RELAY_CONFIRM_TIMEOUT_MS
+            };
+
+            const otherToggle = document.getElementById('toggle-relay' + otherZone);
+            const otherStatus = document.getElementById('status-relay' + otherZone);
+            if (otherToggle) otherToggle.checked = false;
+            if (otherStatus) {
+                otherStatus.innerText = 'OFF';
+                otherStatus.style.color = 'var(--text-main)';
+            }
+        }
+        
+        // ESP32 currently names the irrigation zone field "relay".
+        const payload = { "relay": zone, "state": isChecked ? "ON" : "OFF" };
+        const statusText = document.getElementById('status-relay' + zone);
+        if (statusText) {
+            statusText.innerText = isChecked ? 'ĐANG BẬT…' : 'ĐANG TẮT…';
+            statusText.style.color = isChecked ? '#10b981' : 'var(--text-main)';
+        }
+        
+        fetch('/api/device/' + deviceId + '/control', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Command sent:', data);
+        })
+        .catch(error => {
+            delete pendingRelayCommands[zone];
+            const toggle = document.getElementById('toggle-relay' + zone);
+            if (toggle) toggle.checked = !isChecked;
+            if (statusText) statusText.innerText = !isChecked ? 'ON' : 'OFF';
+            console.error('Error sending command:', error);
+            alert("Lá»—i khi gá»­i lá»‡nh Ä‘iá»u khiá»ƒn. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i máº¡ng.");
+        });
+    }
+        // WebSocket Setup
+    const socket = new SockJS('/ws-iot');
+    const stompClient = Stomp.over(socket);
+    stompClient.debug = null;
+
+    function irrigationPhaseLabel(value) {
+        const phase = Number(value);
+        const labels = {
+            0: 'Đang chờ',
+            1: 'Đang tưới',
+            2: 'Chờ thấm',
+            3: 'Đo độ ẩm',
+            4: 'Không đạt ngưỡng'
+        };
+        return labels[phase] || 'Không xác định';
+    }
+
+    stompClient.connect({}, function() {
+        stompClient.subscribe('/topic/command-status', function(msg) {
+            const result = JSON.parse(msg.body);
+            if (result.deviceId && result.deviceId != deviceId) return;
+
+            const status = String(result.status || '').toUpperCase();
+            const isFinal = status === 'SUCCESS' || status === 'FAILED';
+            const actionText = result.type === 'MODE'
+                    ? `chế độ ${result.mode}`
+                    : (result.type === 'THRESHOLD'
+                        ? `ngưỡng khu vực ${result.zone}: bắt đầu ${result.start}%, dừng ${result.stop}%`
+                        : `khu vực ${result.zone} ${result.state}`);
+
+            if (status === 'QUEUED' || status === 'SENT') {
+                showCommandFeedback(`Đang gửi lệnh ${actionText}`, 'pending');
+            } else if (status === 'RETRYING') {
+                showCommandFeedback(`Đang gửi lại lệnh ${actionText} (lần ${result.attempt})`, 'pending');
+            } else if (status === 'SUCCESS') {
+                showCommandFeedback(`STM32 đã xác nhận lệnh ${actionText}`, 'success');
+            } else if (status === 'FAILED') {
+                showCommandFeedback(`Lệnh ${actionText} thất bại`, 'error');
+            }
+
+            if (result.type === 'MODE' && pendingModeCommand === result.mode && isFinal) {
+                if (status === 'SUCCESS') {
+                    updateModeUI(result.mode === 'AUTO');
+                }
+                pendingModeCommand = null;
+            }
+
+            if (result.type === 'IRRIGATION') {
+                const zone = Number(result.zone);
+                const desiredOn = String(result.state).toUpperCase() === 'ON';
+                const pending = pendingRelayCommands[zone];
+
+                /* Bỏ phản hồi của lệnh cũ nếu người dùng đã chọn trạng thái mới. */
+                if (!pending || pending.desiredOn !== desiredOn) return;
+
+                const statusText = document.getElementById('status-relay' + zone);
+                const toggle = document.getElementById('toggle-relay' + zone);
+                if (status === 'RETRYING' && statusText) {
+                    statusText.innerText = 'ĐANG GỬI LẠI…';
+                } else if (status === 'SUCCESS') {
+                    delete pendingRelayCommands[zone];
+                    if (toggle) toggle.checked = desiredOn;
+                    if (statusText) {
+                        statusText.innerText = desiredOn ? 'ON' : 'OFF';
+                        statusText.style.color = desiredOn ? '#10b981' : 'var(--text-main)';
+                    }
+                } else if (status === 'FAILED') {
+                    delete pendingRelayCommands[zone];
+                    if (toggle) toggle.checked = pending.previousOn;
+                    if (statusText) {
+                        statusText.innerText = 'LỆNH THẤT BẠI';
+                        statusText.style.color = '#ef4444';
+                    }
+                }
+            }
+        });
+
+        stompClient.subscribe('/topic/telemetry-updates', function(msg) {
+                        const data = JSON.parse(msg.body);
+            if (data.deviceId && data.deviceId != deviceId) {
+                return; // Ignore messages for other devices
+            }
+            
+            // Update terminal
+            const stream = document.getElementById('data-stream');
+            const ts = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            
+            // Format nice looking JSON
+            let cleanData = {...data};
+            delete cleanData.deviceId;
+            
+            // Handle status updates
+            if (cleanData.status) {
+                const badge = document.getElementById('device-status-badge');
+                const dot = document.getElementById('device-status-dot');
+                if (cleanData.status === 'OFFLINE') {
+                    if (badge) {
+                        badge.innerText = 'OFFLINE';
+                        badge.style.background = 'rgba(239,68,68,.15)';
+                        badge.style.color = '#f87171';
+                        badge.style.border = '1px solid rgba(239,68,68,.3)';
+                    }
+                    if (dot) {
+                        dot.className = '';
+                        dot.style.background = '#f87171';
+                    }
+                } else if (cleanData.status === 'ONLINE') {
+                    if (badge) {
+                        badge.innerText = 'ONLINE';
+                        badge.style.background = 'rgba(52,211,153,.15)';
+                        badge.style.color = '#34d399';
+                        badge.style.border = '1px solid rgba(52,211,153,.3)';
+                    }
+                    if (dot) {
+                        dot.className = 'pulse-ring';
+                        dot.style.background = '#34d399';
+                    }
+                }
+                delete cleanData.status;
+            }
+            
+            // Sync Mode
+            if (cleanData.mode !== undefined) {
+                if (Date.now() > ignoreModeUpdatesUntil) {
+                    const isAuto = String(cleanData.mode).toUpperCase() === "AUTO";
+                    updateModeUI(isAuto);
+                }
+            }
+            
+            // Sync irrigation zones from the corresponding valve states.
+            const zoneKeys = [
+                { key: 'valve1', alias: 'relay1', id: 1 },
+                { key: 'valve2', alias: 'relay2', id: 2 }
+            ];
+            
+            zoneKeys.forEach(zone => {
+                const state = cleanData[zone.key] !== undefined ? cleanData[zone.key] : cleanData[zone.alias];
+                if (state !== undefined) {
+                    const isON = String(state).toUpperCase() === "ON" || state === 1 || state === true || String(state).toUpperCase() === "TRUE";
+                    const pending = pendingRelayCommands[zone.id];
+
+                    /* Không cho telemetry cũ ghi đè lệnh đang chờ STM32 xác nhận. */
+                    if (pending && isON !== pending.desiredOn && Date.now() < pending.expiresAt) {
+                        return;
+                    }
+                    if (pending) delete pendingRelayCommands[zone.id];
+
+                    const toggle = document.getElementById('toggle-relay' + zone.id);
+                    const status = document.getElementById('status-relay' + zone.id);
+                    if (toggle) toggle.checked = isON;
+                    if (status) {
+                        status.innerText = isON ? 'ON' : 'OFF';
+                        status.style.color = isON ? '#10b981' : 'var(--text-main)';
+                    }
+                }
+            });
+
+            // Pump is read-only on the Web and always follows STM32 telemetry.
+            if (cleanData.pump !== undefined) {
+                const pumpON = String(cleanData.pump).toUpperCase() === "ON" || cleanData.pump === 1 || cleanData.pump === true || String(cleanData.pump).toUpperCase() === "TRUE";
+                const pumpStatus = document.getElementById('status-pump');
+                const pumpLabel = document.getElementById('pump-status-label');
+                const pumpDot = document.getElementById('pump-status-dot');
+                const pumpIcon = document.getElementById('pump-status-icon');
+
+                if (pumpStatus) {
+                    pumpStatus.innerText = pumpON ? 'ON' : 'OFF';
+                    pumpStatus.style.color = pumpON ? '#f43f5e' : 'var(--text-main)';
+                }
+                if (pumpLabel) {
+                    pumpLabel.innerText = pumpON ? 'ĐANG CHẠY' : 'ĐANG TẮT';
+                    pumpLabel.style.color = pumpON ? '#f43f5e' : '#859397';
+                }
+                if (pumpDot) {
+                    pumpDot.className = pumpON ? 'pulse-ring' : '';
+                    pumpDot.style.background = pumpON ? '#f43f5e' : '#859397';
+                }
+                if (pumpIcon) {
+                    pumpIcon.style.background = pumpON ? 'rgba(244,63,94,.1)' : 'rgba(133,147,151,.1)';
+                    pumpIcon.style.color = pumpON ? '#f43f5e' : '#859397';
+                }
+            }
+            
+            // Skip rendering empty data (e.g. only status update)
+            if (Object.keys(cleanData).length === 0) return;
+            
+            
+            line.innerHTML = `<span style="color:#859397;">[${ts}]</span> <span style="color:#34d399;">RECV</span> ${JSON.stringify(cleanData)}`;
+            stream.insertBefore(line, stream.firstChild);
+            if (stream.children.length > 50) stream.removeChild(stream.lastChild);
+            
+            // Update time metrics
+            const now = new Date();
+            const dateEl = document.getElementById('metric-receive_date');
+            if (dateEl) {
+                const dd = String(now.getDate()).padStart(2, '0');
+                const mm = String(now.getMonth() + 1).padStart(2, '0');
+                const yyyy = now.getFullYear();
+                dateEl.innerText = `${dd}/${mm}/${yyyy}`;
+            }
+            
+            const timeEl = document.getElementById('metric-receive_time');
+            if (timeEl) {
+                const hh = String(now.getHours()).padStart(2, '0');
+                const min = String(now.getMinutes()).padStart(2, '0');
+                const ss = String(now.getSeconds()).padStart(2, '0');
+                timeEl.innerText = `${hh}:${min}:${ss}`;
+            }
+            
+            // Update UI metrics in real-time
+            for (const [key, val] of Object.entries(cleanData)) {
+                const el = document.getElementById('metric-' + key);
+                if (el) {
+                    if (key === 'Pha') {
+                        el.innerText = irrigationPhaseLabel(val);
+                        const phaseCaption = document.getElementById('metric-Pha-caption');
+                        if (phaseCaption) phaseCaption.innerText = `Giai đoạn ${Number(val)} trong quy trình tưới AUTO`;
+                    } else if (typeof val === 'number' && !Number.isInteger(val)) {
+                        el.innerText = val.toFixed(2);
+                    } else {
+                        el.innerText = val;
+                    }
+                }
+            }
+            
+            // Update mini chart dynamically
+            if (window.miniChartInstance) {
+                let chartVal = null;
+                // Ưu tiên nhiệt độ, nếu không có thì lấy giá trị đầu tiên
+                if (cleanData['Nhiệt độ'] !== undefined) chartVal = cleanData['Nhiệt độ'];
+                else if (Object.values(cleanData).length > 0) chartVal = Object.values(cleanData)[0];
+                
+                if (chartVal !== null) {
+                    window.miniChartInstance.data.labels.push(ts);
+                    window.miniChartInstance.data.datasets[0].data.push(chartVal);
+                    if (window.miniChartInstance.data.labels.length > 50) {
+                        window.miniChartInstance.data.labels.shift();
+                        window.miniChartInstance.data.datasets[0].data.shift();
+                    }
+                    window.miniChartInstance.update();
+                }
+            }
+        });
+    });
+
+    // Chart initialization with real data
+    const hasData = /*[[${not #lists.isEmpty(latestReadings)}]]*/ false;
+    
+    // Parse real data from backend
+    const chartLabels = JSON.parse(/*[[${chartLabels != null ? chartLabels : '[]'}]]*/ '[]');
+    const chartData = JSON.parse(/*[[${chartData != null ? chartData : '[]'}]]*/ '[]');
+
+    if (hasData && chartLabels.length > 0) {
+        const ctx = document.getElementById('miniChart');
+        if (ctx) {
+            window.miniChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Live Activity',
+                        data: chartData,
+                        borderColor: '#b31d1d',
+                        backgroundColor: 'rgba(179,29,29,0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#b31d1d',
+                        pointBorderWidth: 2,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', font: { family: "'Inter', sans-serif", size: 10 } } },
+                        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { color: '#64748b', font: { family: "'Inter', sans-serif", size: 10 } } }
+                    },
+                    animation: { duration: 400 }
+                }
+            });
+        }
+    }
+    
+    // Sidebar Toggle
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+    }
+</script>
+
+<!-- ===== THRESHOLD MODAL ===== -->
+<div id="threshold-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px;width:min(640px,95vw);max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-.02em;">
+          <span style="font-family:'Material Symbols Outlined';font-size:22px;vertical-align:middle;margin-right:8px;color:#b31d1d;">tune</span>
+          Ngưỡng tưới tự động
+        </h2>
+        <p id="th-sensor-label" style="font-size:13px;color:#64748b;margin-top:4px;font-weight:600;"></p>
+      </div>
+      <button onclick="closeThresholdModal()" style="background:none;border:none;cursor:pointer;color:#64748b;padding:4px;border-radius:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+        <span style="font-family:'Material Symbols Outlined';font-size:24px;">close</span>
+      </button>
+    </div>
+
+    <!-- Info -->
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#92400e;line-height:1.6;">
+      <strong>Hướng dẫn:</strong> Bơm và van của khu vực sẽ bắt đầu tưới khi độ ẩm thấp hơn ngưỡng bắt đầu.
+      Sau mỗi chu kỳ tưới, hệ thống dừng khi độ ẩm đạt ngưỡng dừng. Ngưỡng bắt đầu phải nhỏ hơn ngưỡng dừng.
+    </div>
+
+    <div id="th-zones-list" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:20px;">
+      <label style="display:flex;flex-direction:column;gap:7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;">
+        <span style="font-size:12px;font-weight:800;color:#475569;">Bắt đầu tưới khi thấp hơn (%)</span>
+        <input id="th-start-value" type="number" min="0" max="99" step="1" value="35"
+               oninput="updatePreview()" style="border:1px solid #cbd5e1;border-radius:9px;padding:10px 12px;font-size:18px;font-weight:800;outline:none;">
+      </label>
+      <label style="display:flex;flex-direction:column;gap:7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;">
+        <span style="font-size:12px;font-weight:800;color:#475569;">Dừng tưới khi đạt (%)</span>
+        <input id="th-stop-value" type="number" min="1" max="100" step="1" value="55"
+               oninput="updatePreview()" style="border:1px solid #cbd5e1;border-radius:9px;padding:10px 12px;font-size:18px;font-weight:800;outline:none;">
+      </label>
+    </div>
+
+    <!-- Live Preview -->
+    <div style="margin-top:20px;">
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;">Xem trước</div>
+      <div id="th-preview-bar" style="height:32px;border-radius:10px;overflow:hidden;display:flex;background:#f1f5f9;border:1px solid #e2e8f0;"></div>
+      <div id="th-preview-labels" style="display:flex;margin-top:6px;gap:4px;flex-wrap:wrap;"></div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end;flex-wrap:wrap;">
+      <button onclick="clearThresholds()" style="padding:10px 20px;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+        <span style="font-family:'Material Symbols Outlined';font-size:16px;vertical-align:middle;margin-right:4px;">restart_alt</span>Mặc định 35/55
+      </button>
+      <button onclick="closeThresholdModal()" style="padding:10px 20px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">Hủy</button>
+      <button onclick="saveThresholds()" style="padding:10px 24px;background:#b31d1d;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='#b31d1d'">
+        <span style="font-family:'Material Symbols Outlined';font-size:16px;vertical-align:middle;margin-right:4px;">save</span>Lưu ngưỡng
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== THRESHOLD INDICATOR (on sensor cards) ===== -->
+<style>
+  .threshold-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 6px;
+    letter-spacing: .05em;
+  }
+</style>
+
+<script th:inline="javascript">
+/*<![CDATA[*/
+// ===== THRESHOLD SYSTEM =====
+const DEVICE_ID = /*[[${device.id}]]*/ 0;
+const THRESHOLD_SENSORS = new Set(['Độ ẩm đất 1', 'Độ ẩm đất 2']);
+
+// Load existing thresholds from server-side render
+let allThresholds = {};
+try {
+  allThresholds = /*[[${thresholdsJson != null ? thresholdsJson : '{}'}]]*/ {};
+  // Normalize: server returns List<SensorThreshold> per key
+  for (const key in allThresholds) {
+    if (!Array.isArray(allThresholds[key])) allThresholds[key] = [];
+  }
+} catch(e) { allThresholds = {}; }
+
+let currentSensor = null;
+const DEFAULT_COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316'];
+
+// ── Cập nhật màu và badge ngưỡng trên card cảm biến môi trường
+function renderAllThresholdBadges() {
+  document.querySelectorAll('.sensor-card[data-sensor]').forEach(card => {
+    const sName = card.getAttribute('data-sensor');
+    const valueEl = card.querySelector('.sensor-value');
+    if (!valueEl) return;
+    // Remove old badge
+    const oldBadge = card.querySelector('.threshold-badge');
+    if (oldBadge) oldBadge.remove();
+    // Colorize value based on threshold
+    applyThresholdColor(sName, parseFloat(valueEl.innerText), valueEl);
+    // Show zone badge
+    const zones = allThresholds[sName];
+    if (zones && zones.length > 0) {
+      const val = parseFloat(valueEl.innerText);
+      const zone = zones.find(z => val >= z.minValue && val < z.maxValue) 
+                || zones[zones.length-1];
+      if (zone) {
+        const badge = document.createElement('div');
+        badge.className = 'threshold-badge';
+        badge.style.background = hexToRgba(zone.color || '#64748b', 0.15);
+        badge.style.color = zone.color || '#64748b';
+        badge.style.border = '1px solid ' + hexToRgba(zone.color || '#64748b', 0.3);
+        badge.innerText = zone.label;
+        valueEl.parentElement.appendChild(badge);
+      }
+    }
+  });
+}
+
+function applyThresholdColor(sensorName, value, el) {
+  const zones = allThresholds[sensorName];
+  if (!zones || zones.length === 0 || isNaN(value)) {
+    el.style.color = 'var(--text-main)';
+    return;
+  }
+  const zone = zones.find(z => value >= z.minValue && value < z.maxValue) 
+             || zones[zones.length-1];
+  if (zone) el.style.color = zone.color || 'var(--text-main)';
+}
+
+function hexToRgba(hex, alpha) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return `rgba(100,116,139,${alpha})`;
+  return `rgba(${parseInt(result[1],16)},${parseInt(result[2],16)},${parseInt(result[3],16)},${alpha})`;
+}
+
+// ── Open modal
+function openThresholdModal(sensorName) {
+  if (!THRESHOLD_SENSORS.has(sensorName)) return;
+  currentSensor = sensorName;
+  document.getElementById('th-sensor-label').innerText = 'Cảm biến: ' + sensorName;
+  const modal = document.getElementById('threshold-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  // Load zones
+  renderZones(allThresholds[sensorName] || []);
+  updatePreview();
+}
+
+function closeThresholdModal() {
+  document.getElementById('threshold-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  currentSensor = null;
+}
+
+// Convert the three persisted display ranges back to the two AUTO thresholds.
+function renderZones(zones) {
+  const start = zones.length === 3 ? Number(zones[0].maxValue) : 35;
+  const stop = zones.length === 3 ? Number(zones[2].minValue) : 55;
+  document.getElementById('th-start-value').value = Number.isFinite(start) ? start : 35;
+  document.getElementById('th-stop-value').value = Number.isFinite(stop) ? stop : 55;
+}
+
+// Persist three ranges so the existing badge/color system remains compatible.
+function getZonesFromDOM() {
+  const start = Number(document.getElementById('th-start-value').value);
+  const stop = Number(document.getElementById('th-stop-value').value);
+  return [
+    { label: 'Cần tưới', minValue: 0, maxValue: start, color: '#ef4444' },
+    { label: 'Độ ẩm phù hợp', minValue: start, maxValue: stop, color: '#f59e0b' },
+    { label: 'Đủ ẩm', minValue: stop, maxValue: 100, color: '#10b981' }
+  ];
+}
+
+function updatePreview() {
+  const zones = getZonesFromDOM();
+  const bar = document.getElementById('th-preview-bar');
+  const labels = document.getElementById('th-preview-labels');
+  bar.innerHTML = '';
+  labels.innerHTML = '';
+  const valid = Number.isFinite(zones[0].maxValue) && Number.isFinite(zones[2].minValue) &&
+                zones[0].maxValue >= 0 && zones[2].minValue <= 100 &&
+                zones[0].maxValue < zones[2].minValue;
+  if (!valid) {
+    labels.innerHTML = '<span style="color:#dc2626;font-size:12px;font-weight:700;">Ngưỡng bắt đầu phải nhỏ hơn ngưỡng dừng và nằm trong 0–100%.</span>';
+    return;
+  }
+  zones.forEach(z => {
+    const width = Math.max(0, Math.min(100, z.maxValue - z.minValue));
+    const seg = document.createElement('div');
+    seg.style.cssText = `flex:${width};background:${z.color};display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700;min-width:2px;`;
+    if (width > 10) seg.innerText = z.label;
+    bar.appendChild(seg);
+    // Label pill
+    const pill = document.createElement('div');
+    pill.style.cssText = `display:flex;align-items:center;gap:4px;font-size:10px;font-weight:700;`;
+    pill.innerHTML = `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${z.color}"></span>${z.label} (${z.minValue}–${z.maxValue})`;
+    labels.appendChild(pill);
+  });
+}
+
+async function saveThresholds() {
+  const zones = getZonesFromDOM();
+  const start = zones[0].maxValue;
+  const stop = zones[2].minValue;
+  if (!Number.isFinite(start) || !Number.isFinite(stop) || start < 0 || stop > 100 || start >= stop) {
+    alert('Ngưỡng bắt đầu phải nhỏ hơn ngưỡng dừng và nằm trong khoảng 0–100%.');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/device/${DEVICE_ID}/thresholds?sensorName=${encodeURIComponent(currentSensor)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(zones)
+    });
+    if (!res.ok) throw new Error('Server error');
+    allThresholds[currentSensor] = zones;
+    closeThresholdModal();
+    renderAllThresholdBadges();
+    showToastOk(`Đã lưu ngưỡng ${start}% / ${stop}% cho ${currentSensor}`);
+  } catch(e) {
+    alert('Lỗi khi lưu ngưỡng: ' + e.message);
+  }
+}
+
+async function clearThresholds() {
+  document.getElementById('th-start-value').value = 35;
+  document.getElementById('th-stop-value').value = 55;
+  updatePreview();
+  await saveThresholds();
+}
+
+function showToastOk(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#10b981;color:#fff;padding:12px 20px;border-radius:10px;font-weight:700;font-size:13px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,.2);animation:fadeIn .2s;';
+  t.innerText = '✓ ' + msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// Close modal on backdrop click
+document.getElementById('threshold-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeThresholdModal();
+});
+
+// Hook into existing WebSocket metric updates to apply threshold colors
+const _origMetricUpdate = window.__metricUpdateHook;
+window.__metricUpdateHook = function(key, val) {
+  const el = document.getElementById('metric-' + key);
+  if (el && THRESHOLD_SENSORS.has(key)) applyThresholdColor(key, parseFloat(val), el);
+};
+
+// Initial render after page load
+document.addEventListener('DOMContentLoaded', () => {
+  renderAllThresholdBadges();
+});
+// Also run immediately (DOMContentLoaded may have already fired)
+if (document.readyState !== 'loading') {
+  renderAllThresholdBadges();
+}
+/*]]>*/
+</script>
+</body>
+</html>
