@@ -1,4 +1,4 @@
-package com.duc.iot.iot_web_app.controller;
+﻿package com.duc.iot.iot_web_app.controller;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -446,7 +446,7 @@ public class IotController {
 
         java.io.PrintWriter writer = response.getWriter();
         writer.write('\ufeff');
-        writer.println("NgÃ y,Thá»i gian,TÃªn cáº£m biáº¿n,Äá»™ áº©m Ä‘áº¥t 1,Äá»™ áº©m Ä‘áº¥t 2,Äá»™ áº©m khÃ´ng khÃ­,Nhiệt độ,Chế độ,Máy bơm,Van 1,Van 2");
+        writer.println("Ngày,Thời gian,Tên thiết bị,Độ ẩm đất 1,Độ ẩm đất 2,Độ ẩm không khí,Nhiệt độ,Chế độ,Máy bơm,Van 1,Van 2");
 
         Device device = deviceOpt.get();
         if (device.getSensors() != null) {
@@ -472,9 +472,9 @@ public class IotController {
                 String timeStr = entry.getKey().format(timeFormatter);
                 java.util.Map<String, Double> vals = entry.getValue();
 
-                String soil1 = vals.containsKey("Äá»™ áº©m Ä‘áº¥t 1") ? String.valueOf(vals.get("Äá»™ áº©m Ä‘áº¥t 1")) : (vals.containsKey("Äá»™ áº©m Ä‘áº¥t") ? String.valueOf(vals.get("Äá»™ áº©m Ä‘áº¥t")) : "");
-                String soil2 = vals.containsKey("Äá»™ áº©m Ä‘áº¥t 2") ? String.valueOf(vals.get("Äá»™ áº©m Ä‘áº¥t 2")) : "";
-                String hum = vals.containsKey("Äá»™ áº©m khÃ´ng khÃ­") ? String.valueOf(vals.get("Äá»™ áº©m khÃ´ng khÃ­")) : "";
+                String soil1 = vals.containsKey("Độ ẩm đất 1") ? String.valueOf(vals.get("Độ ẩm đất 1")) : (vals.containsKey("Độ ẩm đất") ? String.valueOf(vals.get("Độ ẩm đất")) : "");
+                String soil2 = vals.containsKey("Độ ẩm đất 2") ? String.valueOf(vals.get("Độ ẩm đất 2")) : "";
+                String hum = vals.containsKey("Độ ẩm không khí") ? String.valueOf(vals.get("Độ ẩm không khí")) : "";
                 String temp = vals.containsKey("Nhiệt độ") ? String.valueOf(vals.get("Nhiệt độ")) : "";
                 String mode = vals.containsKey("Chế độ") ? (Double.valueOf(1.0).equals(vals.get("Chế độ")) ? "AUTO" : "MANUAL") : "";
                 String pump = vals.containsKey("Máy bơm") ? (Double.valueOf(1.0).equals(vals.get("Máy bơm")) ? "ON" : "OFF") : "";
