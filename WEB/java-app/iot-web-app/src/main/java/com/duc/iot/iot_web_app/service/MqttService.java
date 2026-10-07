@@ -39,6 +39,9 @@ public class MqttService implements MqttCallback {
     @Value("${mqtt.topic.sensor}")
     private String topicSensor;
 
+    @Value("${mqtt.topic.command-status}")
+    private String topicCommandStatus;
+
     @Value("${mqtt.username:}")
     private String mqttUsername;
 
@@ -79,8 +82,8 @@ public class MqttService implements MqttCallback {
 
             client.setCallback(this);
             client.connect(options);
-            client.subscribe(topicSensor);
-            log.info("Connected and subscribed to: {}", topicSensor);
+            client.subscribe(new String[] {topicSensor, topicCommandStatus});
+            log.info("Connected and subscribed to: {}, {}", topicSensor, topicCommandStatus);
         } catch (MqttException e) {
             log.error("Failed to connect to MQTT Broker", e);
         }
@@ -111,6 +114,18 @@ public class MqttService implements MqttCallback {
                 return;
             }
             Device device = deviceOpt.get();
+
+            /* CMD status is transient runtime data. Forward it to the matching
+             * browser without storing it as sensor history. */
+            if ("control-status".equals(topicParts[2])) {
+                JsonNode statusData = objectMapper.readTree(payload);
+                ObjectNode statusNode = statusData.isObject()
+                        ? (ObjectNode) statusData.deepCopy()
+                        : objectMapper.createObjectNode();
+                statusNode.put("deviceId", device.getId());
+                messagingTemplate.convertAndSend("/topic/command-status", statusNode.toString());
+                return;
+            }
 
             JsonNode data = objectMapper.readTree(payload);
             ObjectNode objectNode = objectMapper.createObjectNode();
@@ -212,4 +227,3 @@ public class MqttService implements MqttCallback {
         return newSensorReading;
     }
 }
-

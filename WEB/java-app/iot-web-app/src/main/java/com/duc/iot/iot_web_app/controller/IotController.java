@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,10 @@ public class IotController {
 
     // Topic MQTT gá»­i ngÆ°á»¡ng vá» ESP32
     private static final String CONTROL_TOPIC_PREFIX = "iot/device/control/";
+    private static final Set<String> THRESHOLD_SENSOR_NAMES = Set.of(
+            "\u0110\u1ed9 \u1ea9m \u0111\u1ea5t 1",
+            "\u0110\u1ed9 \u1ea9m \u0111\u1ea5t 2"
+    );
 
     private final SensorRepository sensorRepository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -121,7 +126,7 @@ public class IotController {
         Map<String, Object> thresholdsMap = new LinkedHashMap<>();
         for (Sensor s : sensors) {
             String tName = s.getSensorName();
-            if (tName.contains("Ch\u1ebf") || tName.contains("b\u01a1m") || tName.contains("Van")) continue;
+            if (!supportsThresholds(tName)) continue;
             List<SensorThreshold> zones = thresholdRepository.findBySensorIdOrderByDisplayOrderAsc(s.getId());
             if (!zones.isEmpty()) {
                 thresholdsMap.put(tName, zones);
@@ -301,6 +306,11 @@ public class IotController {
         Device device = deviceOpt.get();
         String topic = CONTROL_TOPIC_PREFIX + device.getDeviceUid();
         try {
+            /* Re-send persisted thresholds before AUTO so an STM32 that has
+             * restarted does not continue with stale runtime values. */
+            if ("AUTO".equals(String.valueOf(payload.get("mode")))) {
+                publishSavedIrrigationThresholds(device);
+            }
             String jsonPayload = objectMapper.writeValueAsString(payload);
             mqttService.publishCommand(topic, jsonPayload);
             return ResponseEntity.ok(Map.of("status", "success", "message", "Command sent"));
@@ -489,6 +499,7 @@ public class IotController {
     @ResponseBody
     public ResponseEntity<?> getThresholds(@PathVariable Long deviceId,
                                             @RequestParam String sensorName) {
+        if (!supportsThresholds(sensorName)) return unsupportedThresholdSensor(sensorName);
         Optional<Device> deviceOpt = deviceRepository.findById(deviceId);
         if (deviceOpt.isEmpty()) return ResponseEntity.notFound().build();
         Device device = deviceOpt.get();
@@ -519,6 +530,7 @@ public class IotController {
         Map<String, Object> result = new LinkedHashMap<>();
         if (device.getSensors() != null) {
             for (Sensor s : device.getSensors()) {
+                if (!supportsThresholds(s.getSensorName())) continue;
                 List<SensorThreshold> zones = thresholdRepository.findBySensorIdOrderByDisplayOrderAsc(s.getId());
                 if (!zones.isEmpty()) {
                     // Build compact list cho ESP32
@@ -558,6 +570,13 @@ public class IotController {
     public ResponseEntity<?> saveThresholds(@PathVariable Long deviceId,
                                              @RequestParam String sensorName,
                                              @RequestBody List<Map<String, Object>> zones) {
+        if (!supportsThresholds(sensorName)) return unsupportedThresholdSensor(sensorName);
+        final double[] irrigationThresholds;
+        try {
+            irrigationThresholds = extractIrrigationThresholds(zones);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
         Optional<Device> deviceOpt = deviceRepository.findById(deviceId);
         if (deviceOpt.isEmpty()) return ResponseEntity.notFound().build();
         Device device = deviceOpt.get();
@@ -589,7 +608,7 @@ public class IotController {
         log.info("Saved {} threshold zones for sensor '{}' on device {}", newZones.size(), sensorName, deviceId);
 
         // 2. Gá»­i ngÆ°á»¡ng vá» ESP32 qua MQTT
-        boolean mqttSent = publishThresholdsToDevice(device, sensorName, newZones);
+        boolean mqttSent = publishThresholdsToDevice(device, sensorName, irrigationThresholds[0], irrigationThresholds[1]);
 
         return ResponseEntity.ok(Map.of(
             "status", "success",
@@ -606,6 +625,7 @@ public class IotController {
     @Transactional
     public ResponseEntity<?> deleteThresholds(@PathVariable Long deviceId,
                                                @RequestParam String sensorName) {
+        if (!supportsThresholds(sensorName)) return unsupportedThresholdSensor(sensorName);
         Optional<Device> deviceOpt = deviceRepository.findById(deviceId);
         if (deviceOpt.isEmpty()) return ResponseEntity.notFound().build();
         Device device = deviceOpt.get();
@@ -616,9 +636,20 @@ public class IotController {
         if (sensor != null) {
             thresholdRepository.deleteBySensorId(sensor.getId());
             // Gá»­i lá»‡nh clear ngÆ°á»¡ng vá» ESP32
-            publishThresholdsToDevice(device, sensorName, List.of());
+            publishThresholdsToDevice(device, sensorName, 35.0, 55.0);
         }
         return ResponseEntity.ok(Map.of("status", "success"));
+    }
+
+    private boolean supportsThresholds(String sensorName) {
+        return THRESHOLD_SENSOR_NAMES.contains(sensorName);
+    }
+
+    private ResponseEntity<?> unsupportedThresholdSensor(String sensorName) {
+        return ResponseEntity.badRequest().body(Map.of(
+                "error", "Thresholds are only supported for soil moisture zones 1 and 2",
+                "sensor", sensorName
+        ));
     }
 
     // -------------------------------------------------------------------------
@@ -638,28 +669,66 @@ public class IotController {
      *
      * @return true náº¿u publish thÃ nh cÃ´ng
      */
-    private boolean publishThresholdsToDevice(Device device, String sensorName, List<SensorThreshold> zones) {
+    private double[] extractIrrigationThresholds(List<Map<String, Object>> zones) {
+        if (zones == null || zones.size() != 3) {
+            throw new IllegalArgumentException("Cần đúng 3 dải: Cần tưới, Độ ẩm phù hợp và Đủ ẩm");
+        }
+
+        Object startValue = zones.get(0).get("maxValue");
+        Object stopValue = zones.get(2).get("minValue");
+        if (!(startValue instanceof Number) || !(stopValue instanceof Number)) {
+            throw new IllegalArgumentException("Ngưỡng bắt đầu và ngưỡng dừng không hợp lệ");
+        }
+
+        double start = ((Number) startValue).doubleValue();
+        double stop = ((Number) stopValue).doubleValue();
+        if (!Double.isFinite(start) || !Double.isFinite(stop) || start < 0.0 ||
+                stop > 100.0 || start >= stop) {
+            throw new IllegalArgumentException("Yêu cầu: 0 ≤ ngưỡng bắt đầu < ngưỡng dừng ≤ 100");
+        }
+        return new double[]{start, stop};
+    }
+
+    private int thresholdZone(String sensorName) {
+        return sensorName.endsWith("1") ? 1 : 2;
+    }
+
+    private void publishSavedIrrigationThresholds(Device device) {
+        if (device.getSensors() == null) return;
+
+        for (Sensor sensor : device.getSensors()) {
+            if (!supportsThresholds(sensor.getSensorName())) continue;
+
+            double start = 35.0;
+            double stop = 55.0;
+            List<SensorThreshold> zones = thresholdRepository.findBySensorIdOrderByDisplayOrderAsc(sensor.getId());
+            if (!zones.isEmpty()) {
+                try {
+                    List<Map<String, Object>> values = new ArrayList<>();
+                    for (SensorThreshold zone : zones) {
+                        values.add(Map.of(
+                                "minValue", zone.getMinValue(),
+                                "maxValue", zone.getMaxValue()));
+                    }
+                    double[] saved = extractIrrigationThresholds(values);
+                    start = saved[0];
+                    stop = saved[1];
+                } catch (IllegalArgumentException e) {
+                    log.warn("Invalid saved irrigation thresholds for sensor {}, using defaults", sensor.getSensorName());
+                }
+            }
+            publishThresholdsToDevice(device, sensor.getSensorName(), start, stop);
+        }
+    }
+
+    private boolean publishThresholdsToDevice(Device device, String sensorName, double start, double stop) {
         try {
             String topic = CONTROL_TOPIC_PREFIX + device.getDeviceUid();
             Map<String, Object> payload = new LinkedHashMap<>();
-
-            if (zones.isEmpty()) {
-                payload.put("cmd", "clear_thresholds");
-                payload.put("sensor", sensorName);
-            } else {
-                payload.put("cmd", "set_thresholds");
-                payload.put("sensor", sensorName);
-                List<Map<String, Object>> compactZones = new ArrayList<>();
-                for (SensorThreshold z : zones) {
-                    Map<String, Object> zMap = new LinkedHashMap<>();
-                    zMap.put("label", z.getLabel());
-                    zMap.put("min", z.getMinValue());
-                    zMap.put("max", z.getMaxValue());
-                    zMap.put("color", z.getColor());
-                    compactZones.add(zMap);
-                }
-                payload.put("zones", compactZones);
-            }
+            payload.put("cmd", "set_irrigation_threshold");
+            payload.put("zone", thresholdZone(sensorName));
+            payload.put("start", start);
+            payload.put("stop", stop);
 
             String json = objectMapper.writeValueAsString(payload);
             mqttService.publishCommand(topic, json);
@@ -674,4 +743,3 @@ public class IotController {
         }
     }
 }
-

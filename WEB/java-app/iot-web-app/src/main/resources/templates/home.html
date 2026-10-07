@@ -48,8 +48,9 @@
             .mono { font-size: 24px !important; }
         }
     </style>
+    <link rel="stylesheet" th:href="@{/css/design-system.css}"/>
 </head>
-<body>
+<body class="app-page home-page">
 
 <!-- Mobile Overlay -->
 <div id="sidebarOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
@@ -138,120 +139,7 @@
         </div>
     </div>
 
-    <!-- Core Metrics Grid -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;">
-        <!-- Mode Control -->
-        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <div style="width:40px;height:40px;border-radius:10px;background:rgba(59,130,246,.1);color:#3b82f6;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                    <span class="ms">settings_suggest</span>
-                </div>
-                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Chế độ hoạt động</span>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <div class="mono" id="status-mode" style="font-size:24px;font-weight:900;color:var(--text-main);">THỦ CÔNG</div>
-                        <div style="font-size:12px;color:#859397;margin-top:4px;">Tự động/Thủ công</div>
-                    </div>
-                </div>
-                <div style="display:flex; background:rgba(0,0,0,0.2); border-radius:8px; padding:4px;">
-                    <button id="btn-mode-manual" onclick="setModeCommand('MANUAL')" style="flex:1; padding:8px; border-radius:6px; border:none; font-size:13px; font-weight:700; cursor:pointer; background:#3b82f6; color:#fff; transition:all 0.2s;">THỦ CÔNG</button>
-                    <button id="btn-mode-auto" onclick="setModeCommand('AUTO')" style="flex:1; padding:8px; border-radius:6px; border:none; font-size:13px; font-weight:700; cursor:pointer; background:transparent; color:#859397; transition:all 0.2s;">TỰ ĐỘNG</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Relay Controls -->
-        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <div style="width:40px;height:40px;border-radius:10px;background:rgba(244,63,94,.1);color:#f43f5e;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                    <span class="ms">power</span>
-                </div>
-                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Máy bơm</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div class="mono" id="status-relay1" style="font-size:24px;font-weight:900;color:var(--text-main);">OFF</div>
-                    <div style="font-size:12px;color:#859397;margin-top:4px;">Nhấn để bật/tắt máy bơm</div>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="toggle-relay1" class="sr-only peer" onchange="toggleCommand(1, this.checked)">
-                  <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-rose-500"></div>
-                </label>
-            </div>
-        </div>
-        
-                <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,.1);color:#34d399;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                    <span class="ms">water_drop</span>
-                </div>
-                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Van nước 1</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div class="mono" id="status-relay2" style="font-size:24px;font-weight:900;color:var(--text-main);">OFF</div>
-                    <div style="font-size:12px;color:#859397;margin-top:4px;">Nhấn để đóng/mở van</div>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="toggle-relay2" class="sr-only peer" onchange="toggleCommand(2, this.checked)">
-                  <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
-                </label>
-            </div>
-        </div>
-
-        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,.1);color:#34d399;display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                    <span class="ms">water_drop</span>
-                </div>
-                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Van nước 2</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div class="mono" id="status-relay3" style="font-size:24px;font-weight:900;color:var(--text-main);">OFF</div>
-                    <div style="font-size:12px;color:#859397;margin-top:4px;">Nhấn để đóng/mở van</div>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" id="toggle-relay3" class="sr-only peer" onchange="toggleCommand(3, this.checked)">
-                  <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
-                </label>
-            </div>
-        </div>
-
-        <div class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-                    <div style="width:40px;height:40px;border-radius:10px;background:rgba(52,211,153,.1);color:#34d399;display:flex;align-items:center;justify-content:center;">
-                        <span class="ms">schedule</span>
-                    </div>
-                    <span id="metric-receive_date" class="mono" style="font-size:14px;font-weight:700;color:#34d399;" th:text="${device.lastSeen != null ? #temporals.format(device.lastSeen, 'dd/MM/yyyy') : '--'}">--</span>
-                </div>
-                <span style="font-size:10px;color:#859397;text-transform:uppercase;letter-spacing:.15em;font-weight:700;">Thời gian</span>
-            </div>
-            <div>
-                <div class="mono" style="font-size:36px;font-weight:900;color:var(--text-main);">
-                    <span id="metric-receive_time" th:text="${device.lastSeen != null ? #temporals.format(device.lastSeen, 'HH:mm:ss') : '--'}">--</span>
-                </div>
-                <div style="font-size:12px;color:#859397;margin-top:4px;">thời gian nhận dữ liệu</div>
-            </div>
-        </div>
-
-        <!-- Dynamic sensor readings -->
-        <div th:each="entry : ${latestReadings}" class="glass metric-card" style="display:flex;flex-direction:column;justify-content:space-between;border-color:var(--border-light);cursor:pointer;" th:data-sensor="${entry.key}" onclick="openThresholdModal(this.getAttribute('data-sensor'))">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                <div style="width:40px;height:40px;border-radius:10px;background:rgba(138,235,255,.1);color:var(--color-ptit);display:flex;align-items:center;justify-content:center;margin-bottom:16px;">
-                    <span class="ms">sensors</span>
-                </div>
-                <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.15em;font-weight:700;" th:text="${entry.key}">Sensor</span>
-            </div>
-            <div>
-                <div th:id="'metric-' + ${entry.key}" class="mono" style="font-size:36px;font-weight:900;color:var(--text-main);" th:text="${#numbers.formatDecimal(entry.value, 1, 2)}">0.00</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Cập nhật mới nhất</div>
-            </div>
-        </div>
-    </div>
+    <div th:replace="~{fragments/home-metrics :: dashboardMetrics}"></div>
 
     <!-- Empty State for Sensors & Telemetry Stream -->
     <div class="flex flex-col xl:grid xl:grid-cols-[1fr_400px] gap-6 items-start">
@@ -332,11 +220,32 @@
     </div>
 </main>
 
+<div id="command-feedback" role="status" aria-live="polite"
+     style="display:none;position:fixed;right:24px;bottom:24px;z-index:1000;min-width:260px;max-width:380px;padding:14px 18px;border-radius:14px;background:#172033;color:#fff;box-shadow:0 14px 40px rgba(15,23,42,.25);font-size:14px;font-weight:700;"></div>
+
 <script th:inline="javascript">
     const deviceId = /*[[${device.id}]]*/ 0;
     
     let ignoreModeUpdatesUntil = 0;
-    let ignoreRelayUpdatesUntil = {};
+    let pendingModeCommand = null;
+    const pendingRelayCommands = {};
+    const RELAY_CONFIRM_TIMEOUT_MS = 20000;
+    let commandFeedbackTimer = null;
+
+    function showCommandFeedback(message, kind) {
+        const box = document.getElementById('command-feedback');
+        if (!box) return;
+        const colors = {
+            success: '#059669',
+            error: '#dc2626',
+            pending: '#2563eb'
+        };
+        box.style.background = colors[kind] || '#172033';
+        box.textContent = message;
+        box.style.display = 'block';
+        clearTimeout(commandFeedbackTimer);
+        commandFeedbackTimer = setTimeout(() => box.style.display = 'none', 3500);
+    }
     
         function updateModeUI(isAuto) {
         const modeStatus = document.getElementById('status-mode');
@@ -362,7 +271,7 @@
             }
         }
         
-                [1, 2, 3].forEach(id => {
+        [1, 2].forEach(id => {
             const r = document.getElementById('toggle-relay' + id);
             const statusEl = document.getElementById('status-relay' + id);
             if (r) {
@@ -388,15 +297,13 @@
         
         const isAuto = mode === 'AUTO';
         updateModeUI(isAuto);
+        pendingModeCommand = mode;
+        const modeStatus = document.getElementById('status-mode');
+        if (modeStatus) modeStatus.innerText = 'ĐANG CHUYỂN…';
         
         ignoreModeUpdatesUntil = Date.now() + 3000;
         
-        let payload = { "mode": mode };
-        if (isAuto) {
-            payload["pump"] = "OFF";
-            payload["valve1"] = "OFF";
-            payload["valve2"] = "OFF";
-        }
+        const payload = { "mode": mode };
         
         fetch('/api/device/' + deviceId + '/control', {
             method: 'POST',
@@ -405,42 +312,44 @@
         }).catch(e => console.error(e));
     }
 
-    function toggleCommand(type, isChecked) {
+    function toggleIrrigationCommand(zone, isChecked) {
         const badge = document.getElementById('device-status-badge');
         if (badge && badge.innerText === 'OFFLINE') {
             alert("Thiết bị đang OFFLINE. Không thể gửi lệnh điều khiển!");
-            document.getElementById('toggle-relay' + type).checked = !isChecked;
+            document.getElementById('toggle-relay' + zone).checked = !isChecked;
             return;
         }
         
-        const modeStatus = document.getElementById('status-mode');
-        const isManual = modeStatus && modeStatus.innerText === 'THỦ CÔNG';
-        
-        if (isManual && type === 1 && isChecked) {
-            const valve1 = document.getElementById('toggle-relay2') && document.getElementById('toggle-relay2').checked;
-            const valve2 = document.getElementById('toggle-relay3') && document.getElementById('toggle-relay3').checked;
-            if (!valve1 && !valve2) {
-                alert("Vui lòng mở ít nhất 1 van (Van nước 1 hoặc Van nước 2) trước khi bật máy bơm!");
-                document.getElementById('toggle-relay1').checked = false;
-                return;
+        pendingRelayCommands[zone] = {
+            desiredOn: isChecked,
+            previousOn: !isChecked,
+            expiresAt: Date.now() + RELAY_CONFIRM_TIMEOUT_MS
+        };
+
+        // STM32 only waters one zone at a time. Starting one zone stops the other.
+        if (isChecked) {
+            const otherZone = zone === 1 ? 2 : 1;
+            pendingRelayCommands[otherZone] = {
+                desiredOn: false,
+                expiresAt: Date.now() + RELAY_CONFIRM_TIMEOUT_MS
+            };
+
+            const otherToggle = document.getElementById('toggle-relay' + otherZone);
+            const otherStatus = document.getElementById('status-relay' + otherZone);
+            if (otherToggle) otherToggle.checked = false;
+            if (otherStatus) {
+                otherStatus.innerText = 'OFF';
+                otherStatus.style.color = 'var(--text-main)';
             }
         }
         
-        let payload = {};
-        let statusText;
-        
-        ignoreRelayUpdatesUntil[type] = Date.now() + 3000;
-        
-        payload = { "relay": type, "state": isChecked ? "ON" : "OFF" };
-            if (type === 1) payload["pump"] = isChecked ? "ON" : "OFF";
-            if (type === 2) payload["valve1"] = isChecked ? "ON" : "OFF";
-            if (type === 3) payload["valve2"] = isChecked ? "ON" : "OFF";
-            
-            statusText = document.getElementById('status-relay' + type);
-            if(statusText) {
-                statusText.innerText = isChecked ? 'ON' : 'OFF';
-                statusText.style.color = isChecked ? (type === 1 ? '#f43f5e' : '#10b981') : 'var(--text-main)';
-            }
+        // ESP32 currently names the irrigation zone field "relay".
+        const payload = { "relay": zone, "state": isChecked ? "ON" : "OFF" };
+        const statusText = document.getElementById('status-relay' + zone);
+        if (statusText) {
+            statusText.innerText = isChecked ? 'ĐANG BẬT…' : 'ĐANG TẮT…';
+            statusText.style.color = isChecked ? '#10b981' : 'var(--text-main)';
+        }
         
         fetch('/api/device/' + deviceId + '/control', {
             method: 'POST',
@@ -449,11 +358,18 @@
             },
             body: JSON.stringify(payload)
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        })
         .then(data => {
             console.log('Command sent:', data);
         })
         .catch(error => {
+            delete pendingRelayCommands[zone];
+            const toggle = document.getElementById('toggle-relay' + zone);
+            if (toggle) toggle.checked = !isChecked;
+            if (statusText) statusText.innerText = !isChecked ? 'ON' : 'OFF';
             console.error('Error sending command:', error);
             alert("Lá»—i khi gá»­i lá»‡nh Ä‘iá»u khiá»ƒn. Vui lÃ²ng kiá»ƒm tra káº¿t ná»‘i máº¡ng.");
         });
@@ -462,7 +378,79 @@
     const socket = new SockJS('/ws-iot');
     const stompClient = Stomp.over(socket);
     stompClient.debug = null;
+
+    function irrigationPhaseLabel(value) {
+        const phase = Number(value);
+        const labels = {
+            0: 'Đang chờ',
+            1: 'Đang tưới',
+            2: 'Chờ thấm',
+            3: 'Đo độ ẩm',
+            4: 'Không đạt ngưỡng'
+        };
+        return labels[phase] || 'Không xác định';
+    }
+
     stompClient.connect({}, function() {
+        stompClient.subscribe('/topic/command-status', function(msg) {
+            const result = JSON.parse(msg.body);
+            if (result.deviceId && result.deviceId != deviceId) return;
+
+            const status = String(result.status || '').toUpperCase();
+            const isFinal = status === 'SUCCESS' || status === 'FAILED';
+            const actionText = result.type === 'MODE'
+                    ? `chế độ ${result.mode}`
+                    : (result.type === 'THRESHOLD'
+                        ? `ngưỡng khu vực ${result.zone}: bắt đầu ${result.start}%, dừng ${result.stop}%`
+                        : `khu vực ${result.zone} ${result.state}`);
+
+            if (status === 'QUEUED' || status === 'SENT') {
+                showCommandFeedback(`Đang gửi lệnh ${actionText}`, 'pending');
+            } else if (status === 'RETRYING') {
+                showCommandFeedback(`Đang gửi lại lệnh ${actionText} (lần ${result.attempt})`, 'pending');
+            } else if (status === 'SUCCESS') {
+                showCommandFeedback(`STM32 đã xác nhận lệnh ${actionText}`, 'success');
+            } else if (status === 'FAILED') {
+                showCommandFeedback(`Lệnh ${actionText} thất bại`, 'error');
+            }
+
+            if (result.type === 'MODE' && pendingModeCommand === result.mode && isFinal) {
+                if (status === 'SUCCESS') {
+                    updateModeUI(result.mode === 'AUTO');
+                }
+                pendingModeCommand = null;
+            }
+
+            if (result.type === 'IRRIGATION') {
+                const zone = Number(result.zone);
+                const desiredOn = String(result.state).toUpperCase() === 'ON';
+                const pending = pendingRelayCommands[zone];
+
+                /* Bỏ phản hồi của lệnh cũ nếu người dùng đã chọn trạng thái mới. */
+                if (!pending || pending.desiredOn !== desiredOn) return;
+
+                const statusText = document.getElementById('status-relay' + zone);
+                const toggle = document.getElementById('toggle-relay' + zone);
+                if (status === 'RETRYING' && statusText) {
+                    statusText.innerText = 'ĐANG GỬI LẠI…';
+                } else if (status === 'SUCCESS') {
+                    delete pendingRelayCommands[zone];
+                    if (toggle) toggle.checked = desiredOn;
+                    if (statusText) {
+                        statusText.innerText = desiredOn ? 'ON' : 'OFF';
+                        statusText.style.color = desiredOn ? '#10b981' : 'var(--text-main)';
+                    }
+                } else if (status === 'FAILED') {
+                    delete pendingRelayCommands[zone];
+                    if (toggle) toggle.checked = pending.previousOn;
+                    if (statusText) {
+                        statusText.innerText = 'LỆNH THẤT BẠI';
+                        statusText.style.color = '#ef4444';
+                    }
+                }
+            }
+        });
+
         stompClient.subscribe('/topic/telemetry-updates', function(msg) {
                         const data = JSON.parse(msg.body);
             if (data.deviceId && data.deviceId != deviceId) {
@@ -516,29 +504,59 @@
                 }
             }
             
-            // Sync Relays (handles both relay1/2/3 and pump/valve1/valve2 namings)
-            const relayKeys = [
-                { key: 'relay1', alias: 'pump', id: 1 },
-                { key: 'relay2', alias: 'valve1', id: 2 },
-                { key: 'relay3', alias: 'valve2', id: 3 }
+            // Sync irrigation zones from the corresponding valve states.
+            const zoneKeys = [
+                { key: 'valve1', alias: 'relay1', id: 1 },
+                { key: 'valve2', alias: 'relay2', id: 2 }
             ];
             
-            relayKeys.forEach(r => {
-                let state = cleanData[r.key] !== undefined ? cleanData[r.key] : cleanData[r.alias];
+            zoneKeys.forEach(zone => {
+                const state = cleanData[zone.key] !== undefined ? cleanData[zone.key] : cleanData[zone.alias];
                 if (state !== undefined) {
-                    const ignoreUntil = ignoreRelayUpdatesUntil[r.id] || 0;
-                    if (Date.now() > ignoreUntil) {
                     const isON = String(state).toUpperCase() === "ON" || state === 1 || state === true || String(state).toUpperCase() === "TRUE";
-                    const toggle = document.getElementById('toggle-relay' + r.id);
-                    const status = document.getElementById('status-relay' + r.id);
+                    const pending = pendingRelayCommands[zone.id];
+
+                    /* Không cho telemetry cũ ghi đè lệnh đang chờ STM32 xác nhận. */
+                    if (pending && isON !== pending.desiredOn && Date.now() < pending.expiresAt) {
+                        return;
+                    }
+                    if (pending) delete pendingRelayCommands[zone.id];
+
+                    const toggle = document.getElementById('toggle-relay' + zone.id);
+                    const status = document.getElementById('status-relay' + zone.id);
                     if (toggle) toggle.checked = isON;
                     if (status) {
                         status.innerText = isON ? 'ON' : 'OFF';
-                        status.style.color = isON ? (r.id === 1 ? '#f43f5e' : '#10b981') : 'var(--text-main)';
-                    }
+                        status.style.color = isON ? '#10b981' : 'var(--text-main)';
                     }
                 }
             });
+
+            // Pump is read-only on the Web and always follows STM32 telemetry.
+            if (cleanData.pump !== undefined) {
+                const pumpON = String(cleanData.pump).toUpperCase() === "ON" || cleanData.pump === 1 || cleanData.pump === true || String(cleanData.pump).toUpperCase() === "TRUE";
+                const pumpStatus = document.getElementById('status-pump');
+                const pumpLabel = document.getElementById('pump-status-label');
+                const pumpDot = document.getElementById('pump-status-dot');
+                const pumpIcon = document.getElementById('pump-status-icon');
+
+                if (pumpStatus) {
+                    pumpStatus.innerText = pumpON ? 'ON' : 'OFF';
+                    pumpStatus.style.color = pumpON ? '#f43f5e' : 'var(--text-main)';
+                }
+                if (pumpLabel) {
+                    pumpLabel.innerText = pumpON ? 'ĐANG CHẠY' : 'ĐANG TẮT';
+                    pumpLabel.style.color = pumpON ? '#f43f5e' : '#859397';
+                }
+                if (pumpDot) {
+                    pumpDot.className = pumpON ? 'pulse-ring' : '';
+                    pumpDot.style.background = pumpON ? '#f43f5e' : '#859397';
+                }
+                if (pumpIcon) {
+                    pumpIcon.style.background = pumpON ? 'rgba(244,63,94,.1)' : 'rgba(133,147,151,.1)';
+                    pumpIcon.style.color = pumpON ? '#f43f5e' : '#859397';
+                }
+            }
             
             // Skip rendering empty data (e.g. only status update)
             if (Object.keys(cleanData).length === 0) return;
@@ -570,7 +588,11 @@
             for (const [key, val] of Object.entries(cleanData)) {
                 const el = document.getElementById('metric-' + key);
                 if (el) {
-                    if (typeof val === 'number' && !Number.isInteger(val)) {
+                    if (key === 'Pha') {
+                        el.innerText = irrigationPhaseLabel(val);
+                        const phaseCaption = document.getElementById('metric-Pha-caption');
+                        if (phaseCaption) phaseCaption.innerText = `Giai đoạn ${Number(val)} trong quy trình tưới AUTO`;
+                    } else if (typeof val === 'number' && !Number.isInteger(val)) {
                         el.innerText = val.toFixed(2);
                     } else {
                         el.innerText = val;
@@ -657,7 +679,7 @@
       <div>
         <h2 style="font-size:20px;font-weight:800;color:#0f172a;letter-spacing:-.02em;">
           <span style="font-family:'Material Symbols Outlined';font-size:22px;vertical-align:middle;margin-right:8px;color:#b31d1d;">tune</span>
-          Đặt ngưỡng cảm biến
+          Ngưỡng tưới tự động
         </h2>
         <p id="th-sensor-label" style="font-size:13px;color:#64748b;margin-top:4px;font-weight:600;"></p>
       </div>
@@ -668,17 +690,22 @@
 
     <!-- Info -->
     <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#92400e;line-height:1.6;">
-      <strong>💡 Hướng dẫn:</strong> Định nghĩa các dải ngưỡng (zone) từ 0 đến 100. Mỗi dải có tên tự đặt và màu hiển thị.<br>
-      Ví dụ Nhiệt độ: <em>Quá lạnh (0–25)</em> | <em>Bình thường (25–35)</em> | <em>Quá nóng (35–100)</em>
+      <strong>Hướng dẫn:</strong> Bơm và van của khu vực sẽ bắt đầu tưới khi độ ẩm thấp hơn ngưỡng bắt đầu.
+      Sau mỗi chu kỳ tưới, hệ thống dừng khi độ ẩm đạt ngưỡng dừng. Ngưỡng bắt đầu phải nhỏ hơn ngưỡng dừng.
     </div>
 
-    <!-- Zone List -->
-    <div id="th-zones-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
-
-    <!-- Add Zone Button -->
-    <button onclick="addZone()" style="width:100%;padding:10px;border:2px dashed #e2e8f0;border-radius:10px;background:none;cursor:pointer;color:#64748b;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;" onmouseover="this.style.borderColor='#b31d1d';this.style.color='#b31d1d'" onmouseout="this.style.borderColor='#e2e8f0';this.style.color='#64748b'">
-      <span style="font-family:'Material Symbols Outlined';font-size:18px;">add</span> Thêm dải ngưỡng
-    </button>
+    <div id="th-zones-list" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:20px;">
+      <label style="display:flex;flex-direction:column;gap:7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;">
+        <span style="font-size:12px;font-weight:800;color:#475569;">Bắt đầu tưới khi thấp hơn (%)</span>
+        <input id="th-start-value" type="number" min="0" max="99" step="1" value="35"
+               oninput="updatePreview()" style="border:1px solid #cbd5e1;border-radius:9px;padding:10px 12px;font-size:18px;font-weight:800;outline:none;">
+      </label>
+      <label style="display:flex;flex-direction:column;gap:7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;">
+        <span style="font-size:12px;font-weight:800;color:#475569;">Dừng tưới khi đạt (%)</span>
+        <input id="th-stop-value" type="number" min="1" max="100" step="1" value="55"
+               oninput="updatePreview()" style="border:1px solid #cbd5e1;border-radius:9px;padding:10px 12px;font-size:18px;font-weight:800;outline:none;">
+      </label>
+    </div>
 
     <!-- Live Preview -->
     <div style="margin-top:20px;">
@@ -690,7 +717,7 @@
     <!-- Actions -->
     <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end;flex-wrap:wrap;">
       <button onclick="clearThresholds()" style="padding:10px 20px;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
-        <span style="font-family:'Material Symbols Outlined';font-size:16px;vertical-align:middle;margin-right:4px;">delete</span>Xóa tất cả
+        <span style="font-family:'Material Symbols Outlined';font-size:16px;vertical-align:middle;margin-right:4px;">restart_alt</span>Mặc định 35/55
       </button>
       <button onclick="closeThresholdModal()" style="padding:10px 20px;background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">Hủy</button>
       <button onclick="saveThresholds()" style="padding:10px 24px;background:#b31d1d;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#991b1b'" onmouseout="this.style.background='#b31d1d'">
@@ -711,24 +738,13 @@
     margin-top: 6px;
     letter-spacing: .05em;
   }
-  .metric-card .th-set-hint {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 9px;
-    color: #b31d1d;
-    text-transform: uppercase;
-    font-weight: 700;
-    letter-spacing: .08em;
-    opacity: 0.7;
-  }
-  .metric-card:hover .th-set-hint { opacity: 1; }
 </style>
 
 <script th:inline="javascript">
 /*<![CDATA[*/
 // ===== THRESHOLD SYSTEM =====
 const DEVICE_ID = /*[[${device.id}]]*/ 0;
+const THRESHOLD_SENSORS = new Set(['Độ ẩm đất 1', 'Độ ẩm đất 2']);
 
 // Load existing thresholds from server-side render
 let allThresholds = {};
@@ -743,22 +759,15 @@ try {
 let currentSensor = null;
 const DEFAULT_COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316'];
 
-// ── Tạo hint badge trên card metric
+// ── Cập nhật màu và badge ngưỡng trên card cảm biến môi trường
 function renderAllThresholdBadges() {
-  document.querySelectorAll('[data-sensor]').forEach(card => {
+  document.querySelectorAll('.sensor-card[data-sensor]').forEach(card => {
     const sName = card.getAttribute('data-sensor');
-    const valueEl = card.querySelector('.mono');
+    const valueEl = card.querySelector('.sensor-value');
     if (!valueEl) return;
     // Remove old badge
     const oldBadge = card.querySelector('.threshold-badge');
     if (oldBadge) oldBadge.remove();
-    // Add hint text
-    if (!card.querySelector('.th-set-hint')) {
-      const hint = document.createElement('div');
-      hint.className = 'th-set-hint';
-      hint.innerHTML = '<span style="font-family:Material Symbols Outlined;font-size:11px;vertical-align:middle;">tune</span> Đặt ngưỡng';
-      card.appendChild(hint);
-    }
     // Colorize value based on threshold
     applyThresholdColor(sName, parseFloat(valueEl.innerText), valueEl);
     // Show zone badge
@@ -799,6 +808,7 @@ function hexToRgba(hex, alpha) {
 
 // ── Open modal
 function openThresholdModal(sensorName) {
+  if (!THRESHOLD_SENSORS.has(sensorName)) return;
   currentSensor = sensorName;
   document.getElementById('th-sensor-label').innerText = 'Cảm biến: ' + sensorName;
   const modal = document.getElementById('threshold-modal');
@@ -815,85 +825,23 @@ function closeThresholdModal() {
   currentSensor = null;
 }
 
-// ── Render zones in editor
+// Convert the three persisted display ranges back to the two AUTO thresholds.
 function renderZones(zones) {
-  const list = document.getElementById('th-zones-list');
-  list.innerHTML = '';
-  zones.forEach((z, i) => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:grid;grid-template-columns:1fr 90px 90px 44px 32px;gap:8px;align-items:center;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;';
-    row.innerHTML = `
-      <div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Tên dải</div>
-        <input type="text" placeholder="VD: Bình thường" value="${z.label || ''}" 
-          oninput="updateZone(${i}, 'label', this.value);updatePreview()"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:13px;font-weight:600;background:#fff;outline:none;"
-          onfocus="this.style.borderColor='#b31d1d'" onblur="this.style.borderColor='#e2e8f0'"/>
-      </div>
-      <div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Từ</div>
-        <input type="number" step="0.1" min="0" max="100" value="${z.minValue ?? 0}"
-          oninput="updateZone(${i}, 'minValue', parseFloat(this.value)||0);updatePreview()"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:13px;font-weight:600;background:#fff;outline:none;"
-          onfocus="this.style.borderColor='#b31d1d'" onblur="this.style.borderColor='#e2e8f0'"/>
-      </div>
-      <div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Đến</div>
-        <input type="number" step="0.1" min="0" max="100" value="${z.maxValue ?? 100}"
-          oninput="updateZone(${i}, 'maxValue', parseFloat(this.value)||100);updatePreview()"
-          style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;font-size:13px;font-weight:600;background:#fff;outline:none;"
-          onfocus="this.style.borderColor='#b31d1d'" onblur="this.style.borderColor='#e2e8f0'"/>
-      </div>
-      <div>
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:4px;">Màu</div>
-        <input type="color" value="${z.color || DEFAULT_COLORS[i % DEFAULT_COLORS.length]}"
-          oninput="updateZone(${i}, 'color', this.value);updatePreview()"
-          style="width:36px;height:32px;border:1px solid #e2e8f0;border-radius:6px;padding:2px;cursor:pointer;background:#fff;"/>
-      </div>
-      <div style="padding-top:18px;">
-        <button onclick="removeZone(${i})" style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:4px;cursor:pointer;color:#ef4444;display:flex;align-items:center;"
-          onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
-          <span style="font-family:'Material Symbols Outlined';font-size:16px;">delete</span>
-        </button>
-      </div>
-    `;
-    list.appendChild(row);
-  });
+  const start = zones.length === 3 ? Number(zones[0].maxValue) : 35;
+  const stop = zones.length === 3 ? Number(zones[2].minValue) : 55;
+  document.getElementById('th-start-value').value = Number.isFinite(start) ? start : 35;
+  document.getElementById('th-stop-value').value = Number.isFinite(stop) ? stop : 55;
 }
 
-// ── Get current zones from DOM inputs
+// Persist three ranges so the existing badge/color system remains compatible.
 function getZonesFromDOM() {
-  const rows = document.getElementById('th-zones-list').children;
-  const zones = [];
-  Array.from(rows).forEach(row => {
-    const inputs = row.querySelectorAll('input');
-    zones.push({
-      label: inputs[0].value.trim() || 'Zone',
-      minValue: parseFloat(inputs[1].value) || 0,
-      maxValue: parseFloat(inputs[2].value) || 100,
-      color: inputs[3].value || '#64748b',
-    });
-  });
-  return zones;
-}
-
-function updateZone(idx, field, val) {
-  // Reactive update happens via oninput on inputs
-}
-
-function addZone() {
-  const zones = getZonesFromDOM();
-  const lastMax = zones.length > 0 ? (zones[zones.length-1].maxValue || 100) : 0;
-  zones.push({ label: '', minValue: lastMax, maxValue: 100, color: DEFAULT_COLORS[zones.length % DEFAULT_COLORS.length] });
-  renderZones(zones);
-  updatePreview();
-}
-
-function removeZone(idx) {
-  const zones = getZonesFromDOM();
-  zones.splice(idx, 1);
-  renderZones(zones);
-  updatePreview();
+  const start = Number(document.getElementById('th-start-value').value);
+  const stop = Number(document.getElementById('th-stop-value').value);
+  return [
+    { label: 'Cần tưới', minValue: 0, maxValue: start, color: '#ef4444' },
+    { label: 'Độ ẩm phù hợp', minValue: start, maxValue: stop, color: '#f59e0b' },
+    { label: 'Đủ ẩm', minValue: stop, maxValue: 100, color: '#10b981' }
+  ];
 }
 
 function updatePreview() {
@@ -902,7 +850,13 @@ function updatePreview() {
   const labels = document.getElementById('th-preview-labels');
   bar.innerHTML = '';
   labels.innerHTML = '';
-  const total = 100;
+  const valid = Number.isFinite(zones[0].maxValue) && Number.isFinite(zones[2].minValue) &&
+                zones[0].maxValue >= 0 && zones[2].minValue <= 100 &&
+                zones[0].maxValue < zones[2].minValue;
+  if (!valid) {
+    labels.innerHTML = '<span style="color:#dc2626;font-size:12px;font-weight:700;">Ngưỡng bắt đầu phải nhỏ hơn ngưỡng dừng và nằm trong 0–100%.</span>';
+    return;
+  }
   zones.forEach(z => {
     const width = Math.max(0, Math.min(100, z.maxValue - z.minValue));
     const seg = document.createElement('div');
@@ -919,14 +873,11 @@ function updatePreview() {
 
 async function saveThresholds() {
   const zones = getZonesFromDOM();
-  if (zones.length === 0) {
-    await clearThresholds();
+  const start = zones[0].maxValue;
+  const stop = zones[2].minValue;
+  if (!Number.isFinite(start) || !Number.isFinite(stop) || start < 0 || stop > 100 || start >= stop) {
+    alert('Ngưỡng bắt đầu phải nhỏ hơn ngưỡng dừng và nằm trong khoảng 0–100%.');
     return;
-  }
-  // Validate
-  for (const z of zones) {
-    if (!z.label) { alert('Vui lòng đặt tên cho tất cả các dải!'); return; }
-    if (z.minValue >= z.maxValue) { alert(`Dải "${z.label}": Giá trị "Từ" phải nhỏ hơn "Đến"!`); return; }
   }
   try {
     const res = await fetch(`/api/device/${DEVICE_ID}/thresholds?sensorName=${encodeURIComponent(currentSensor)}`, {
@@ -938,23 +889,17 @@ async function saveThresholds() {
     allThresholds[currentSensor] = zones;
     closeThresholdModal();
     renderAllThresholdBadges();
-    showToastOk(`Đã lưu ${zones.length} dải ngưỡng cho ${currentSensor}`);
+    showToastOk(`Đã lưu ngưỡng ${start}% / ${stop}% cho ${currentSensor}`);
   } catch(e) {
     alert('Lỗi khi lưu ngưỡng: ' + e.message);
   }
 }
 
 async function clearThresholds() {
-  if (!confirm(`Xóa toàn bộ ngưỡng của ${currentSensor}?`)) return;
-  try {
-    await fetch(`/api/device/${DEVICE_ID}/thresholds?sensorName=${encodeURIComponent(currentSensor)}`, { method: 'DELETE' });
-    delete allThresholds[currentSensor];
-    closeThresholdModal();
-    renderAllThresholdBadges();
-    showToastOk(`Đã xóa ngưỡng của ${currentSensor}`);
-  } catch(e) {
-    alert('Lỗi khi xóa ngưỡng: ' + e.message);
-  }
+  document.getElementById('th-start-value').value = 35;
+  document.getElementById('th-stop-value').value = 55;
+  updatePreview();
+  await saveThresholds();
 }
 
 function showToastOk(msg) {
@@ -974,40 +919,18 @@ document.getElementById('threshold-modal').addEventListener('click', function(e)
 const _origMetricUpdate = window.__metricUpdateHook;
 window.__metricUpdateHook = function(key, val) {
   const el = document.getElementById('metric-' + key);
-  if (el) applyThresholdColor(key, parseFloat(val), el);
+  if (el && THRESHOLD_SENSORS.has(key)) applyThresholdColor(key, parseFloat(val), el);
 };
 
 // Initial render after page load
 document.addEventListener('DOMContentLoaded', () => {
-  // Make sensor metric cards clickable
-  document.querySelectorAll('[data-sensor]').forEach(card => {
-    card.style.cursor = 'pointer';
-    card.addEventListener('click', function() {
-      openThresholdModal(this.getAttribute('data-sensor'));
-    });
-  });
   renderAllThresholdBadges();
 });
 // Also run immediately (DOMContentLoaded may have already fired)
 if (document.readyState !== 'loading') {
-  document.querySelectorAll('[data-sensor]').forEach(card => {
-    card.style.cursor = 'pointer';
-    card.addEventListener('click', function() {
-      openThresholdModal(this.getAttribute('data-sensor'));
-    });
-  });
   renderAllThresholdBadges();
 }
 /*]]>*/
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-

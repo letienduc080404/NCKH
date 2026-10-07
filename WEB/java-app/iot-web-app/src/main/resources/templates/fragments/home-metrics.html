@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<body>
+<th:block th:fragment="dashboardMetrics">
+    <section class="dashboard-section irrigation-section">
+        <div class="section-heading">
+            <div class="section-heading-icon irrigation"><span class="ms">water_drop</span></div>
+            <div>
+                <h2>Điều khiển tưới</h2>
+                <p>Điều khiển chế độ và khu vực tưới theo thời gian thực</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid control-grid">
+            <article class="glass metric-card control-card mode-card">
+                <div class="metric-card-head">
+                    <div class="metric-icon blue"><span class="ms">settings_suggest</span></div>
+                    <span class="metric-title">Chế độ hoạt động</span>
+                </div>
+                <div class="control-card-body">
+                    <div>
+                        <div class="mono control-state" id="status-mode">THỦ CÔNG</div>
+                        <div class="metric-caption">Chọn cách vận hành hệ thống</div>
+                    </div>
+                    <div class="mode-selector">
+                        <button id="btn-mode-manual" onclick="setModeCommand('MANUAL')">THỦ CÔNG</button>
+                        <button id="btn-mode-auto" onclick="setModeCommand('AUTO')">TỰ ĐỘNG</button>
+                    </div>
+                </div>
+            </article>
+
+            <article class="glass metric-card control-card zone-card">
+                <div class="metric-card-head">
+                    <div class="metric-icon green"><span class="ms">water_drop</span></div>
+                    <span class="metric-title">Khu vực 1</span>
+                </div>
+                <div class="control-card-body control-row">
+                    <div>
+                        <div class="mono control-state" id="status-relay1">OFF</div>
+                        <div class="metric-caption">Bật/tắt tưới khu vực 1</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer" aria-label="Bật hoặc tắt tưới khu vực 1">
+                        <input type="checkbox" id="toggle-relay1" class="sr-only peer" onchange="toggleIrrigationCommand(1, this.checked)">
+                        <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+            </article>
+
+            <article class="glass metric-card control-card zone-card">
+                <div class="metric-card-head">
+                    <div class="metric-icon green"><span class="ms">water_drop</span></div>
+                    <span class="metric-title">Khu vực 2</span>
+                </div>
+                <div class="control-card-body control-row">
+                    <div>
+                        <div class="mono control-state" id="status-relay2">OFF</div>
+                        <div class="metric-caption">Bật/tắt tưới khu vực 2</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer" aria-label="Bật hoặc tắt tưới khu vực 2">
+                        <input type="checkbox" id="toggle-relay2" class="sr-only peer" onchange="toggleIrrigationCommand(2, this.checked)">
+                        <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
+                    </label>
+                </div>
+            </article>
+
+            <article class="glass metric-card control-card pump-card">
+                <div class="metric-card-head">
+                    <div id="pump-status-icon" class="metric-icon muted"><span class="ms">water_pump</span></div>
+                    <span class="metric-title">Máy bơm</span>
+                </div>
+                <div class="control-card-body control-row">
+                    <div>
+                        <div class="mono control-state" id="status-pump">OFF</div>
+                        <div class="metric-caption">Trạng thái từ STM32</div>
+                    </div>
+                    <div class="status-pill muted" id="pump-status-pill">
+                        <span id="pump-status-dot" class="status-dot"></span>
+                        <span id="pump-status-label">ĐANG TẮT</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="dashboard-section environment-section">
+        <div class="section-heading">
+            <div class="section-heading-icon environment"><span class="ms">eco</span></div>
+            <div>
+                <h2>Dữ liệu môi trường</h2>
+                <p>Số liệu mới nhất từ các cảm biến tại khu vực trồng</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid environment-grid">
+            <article th:each="entry : ${latestReadings}"
+                     th:if="${entry.key == 'Nhiệt độ' or entry.key == 'Độ ẩm không khí' or entry.key == 'Độ ẩm đất' or entry.key == 'Độ ẩm đất 1' or entry.key == 'Độ ẩm đất 2'}"
+                     class="glass metric-card sensor-card"
+                     th:data-sensor="${(entry.key == 'Độ ẩm đất 1' or entry.key == 'Độ ẩm đất 2') ? entry.key : null}">
+                <div class="metric-card-head">
+                    <div class="metric-icon sensor"><span class="ms">sensors</span></div>
+                    <button th:if="${entry.key == 'Độ ẩm đất 1' or entry.key == 'Độ ẩm đất 2'}"
+                            type="button" class="threshold-action" th:attr="data-sensor=${entry.key}"
+                            onclick="openThresholdModal(this.dataset.sensor)">
+                        <span class="ms">tune</span>Ngưỡng
+                    </button>
+                </div>
+                <div class="sensor-card-body">
+                    <div class="metric-title sensor-name" th:text="${entry.key}">Cảm biến</div>
+                    <div class="sensor-value-row">
+                        <span th:id="'metric-' + ${entry.key}" class="mono sensor-value" th:text="${#numbers.formatDecimal(entry.value, 1, 2)}">0.00</span>
+                        <span class="sensor-unit" th:text="${entry.key == 'Nhiệt độ' ? '°C' : '%'}">%</span>
+                    </div>
+                    <div class="metric-caption">Cập nhật mới nhất</div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="dashboard-section system-section">
+        <div class="section-heading">
+            <div class="section-heading-icon system"><span class="ms">monitor_heart</span></div>
+            <div>
+                <h2>Trạng thái hệ thống</h2>
+                <p>Thời gian cập nhật và trạng thái vận hành hiện tại</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid system-grid">
+            <article class="glass metric-card system-card time-card">
+                <div class="metric-card-head">
+                    <div class="metric-icon green"><span class="ms">schedule</span></div>
+                    <span class="metric-title">Cập nhật gần nhất</span>
+                </div>
+                <div class="time-value">
+                    <span id="metric-receive_date" class="mono" th:text="${device.lastSeen != null ? #temporals.format(device.lastSeen, 'dd/MM/yyyy') : '--'}">--</span>
+                    <span class="time-separator">•</span>
+                    <span id="metric-receive_time" class="mono" th:text="${device.lastSeen != null ? #temporals.format(device.lastSeen, 'HH:mm:ss') : '--'}">--</span>
+                </div>
+                <div class="metric-caption">Thời gian Web nhận telemetry</div>
+            </article>
+
+            <article th:each="entry : ${latestReadings}"
+                     th:if="${entry.key == 'Pin' or entry.key == 'Khu vực HĐ' or entry.key == 'Pha' or entry.key == 'Chu kỳ' or entry.key == 'Bản tin số' or entry.key == 'Tín hiệu Wi-Fi'}"
+                     class="glass metric-card system-card">
+                <div class="metric-card-head">
+                    <div class="metric-icon system">
+                        <span class="ms"
+                              th:text="${entry.key == 'Pin' ? 'battery_5_bar' : (entry.key == 'Pha' ? 'water_drop' : (entry.key == 'Chu kỳ' ? 'autorenew' : 'memory'))}">memory</span>
+                    </div>
+                    <span class="metric-title"
+                          th:text="${entry.key == 'Pin' ? 'Pin' : (entry.key == 'Pha' ? 'Giai đoạn tưới AUTO' : (entry.key == 'Chu kỳ' ? 'Chu kỳ tưới' : entry.key))}">Trạng thái</span>
+                </div>
+                <div>
+                    <div class="sensor-value-row compact">
+                        <span th:if="${entry.key != 'Pha'}"
+                              th:id="'metric-' + ${entry.key}" class="mono sensor-value"
+                              th:text="${#numbers.formatDecimal(entry.value, 1, 2)}">0.00</span>
+                        <span th:if="${entry.key == 'Pha'}" id="metric-Pha" class="phase-value"
+                              th:text="${entry.value == 1 ? 'Đang tưới' : (entry.value == 2 ? 'Chờ thấm' : (entry.value == 3 ? 'Đo độ ẩm' : (entry.value == 4 ? 'Không đạt ngưỡng' : 'Đang chờ')))}">Đang chờ</span>
+                        <span class="sensor-unit" th:if="${entry.key == 'Pin'}">%</span>
+                        <span class="sensor-unit" th:if="${entry.key == 'Tín hiệu Wi-Fi'}">dBm</span>
+                    </div>
+                    <div class="metric-caption" th:if="${entry.key == 'Pin'}">Mức pin của node gửi STM32</div>
+                    <div class="metric-caption" th:if="${entry.key == 'Pha'}" id="metric-Pha-caption"
+                         th:text="${'Giai đoạn ' + #numbers.formatInteger(entry.value, 1) + ' trong quy trình tưới AUTO'}">Giai đoạn 0 trong quy trình tưới AUTO</div>
+                    <div class="metric-caption" th:if="${entry.key == 'Chu kỳ'}">Chu kỳ tưới hiện tại trong AUTO</div>
+                    <div class="metric-caption"
+                         th:if="${entry.key != 'Pin' and entry.key != 'Pha' and entry.key != 'Chu kỳ'}">Trạng thái hiện tại</div>
+                </div>
+            </article>
+        </div>
+    </section>
+</th:block>
+</body>
+</html>
