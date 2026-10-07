@@ -687,3 +687,126 @@ body.auth-page .btn-primary:hover {
         animation-iteration-count: 1 !important;
     }
 }
+
+/* ==========================================================================
+   MOBILE RESPONSIVE OPTIMIZATION (< 768px)
+   ========================================================================== */
+@media (max-width: 767px) {
+    
+    /* 1. Fluid Typography - Kích thước chữ tự động thu phóng mượt mà */
+    body.app-page {
+        font-size: clamp(14px, 4vw, 16px) !important;
+    }
+
+    h1, .device-name {
+        font-size: clamp(28px, 8vw, 36px) !important;
+    }
+
+    h2 {
+        font-size: clamp(16px, 5vw, 20px) !important;
+    }
+
+    /* Các số liệu hiển thị lớn */
+    .sensor-value, .time-value, .mono {
+        font-size: clamp(24px, 6vw, 32px) !important;
+    }
+
+    .metric-title {
+        font-size: clamp(14px, 4vw, 15px) !important;
+    }
+
+    /* 2. Bố cục (Layout) - Chuyển Grid/Flex xếp ngang thành xếp dọc */
+    .dashboard-grid, 
+    .control-grid, 
+    .environment-grid, 
+    .system-grid {
+        display: grid !important;
+        grid-template-columns: 1fr !important; /* Chuyển thành 1 cột */
+        gap: 16px !important;
+    }
+
+    /* Cho phép wrap linh hoạt với các flex container hiện tại */
+    [style*="display:flex"], 
+    [style*="display: flex"] {
+        flex-wrap: wrap !important;
+    }
+
+    /* Đảm bảo header và phần tử icon vẫn giữ form nằm ngang */
+    .metric-card-head, 
+    .section-heading,
+    .sensor-value-row {
+        flex-wrap: nowrap !important;
+    }
+
+    /* 3. Nút nhấn & Input - Đảm bảo Touch Target tối thiểu 44x44px */
+    button, 
+    input[type="button"], 
+    input[type="submit"], 
+    .btn, 
+    a.sidebar-link {
+        min-height: 44px !important;
+        min-width: 44px !important;
+        padding: 0.8rem 1.25rem !important;
+        font-size: clamp(14px, 4vw, 16px) !important;
+    }
+
+    /* Chuyển các nút hành động thành dạng khối (block/100% width) */
+    .mode-selector {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+    
+    .mode-selector button {
+        flex: 1 !important; /* Chia đều 2 nút Thủ công/Tự động */
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    /* 4. Khoảng cách (Spacing) - Thu gọn margin và padding */
+    main {
+        padding: 16px !important;
+        gap: 20px !important;
+    }
+
+    .glass, 
+    .metric-card,
+    [style*="padding:40px"], 
+    [style*="padding: 40px"] {
+        padding: 20px !important;
+        border-radius: 20px !important;
+    }
+
+    .section-heading {
+        margin-bottom: 16px !important;
+    }
+
+    /* 5. Bảng dữ liệu (Tables) - Hỗ trợ vuốt ngang không vỡ layout */
+    .table-wrapper, 
+    .table-responsive,
+    .table-container {
+        width: 100% !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        display: block !important;
+        border-radius: 12px !important;
+    }
+
+    table {
+        width: 100% !important;
+        min-width: 600px !important;
+    }
+
+    /* 6. Sidebar (Hamburger Menu Override - nếu cần thiết bổ sung) */
+    #sidebar {
+        width: 280px !important;
+        max-width: 85vw !important;
+        padding: 20px 16px !important;
+    }
+    
+    /* Sửa lỗi tràn nội dung (overflow) của các div thông tin kết nối */
+    .mono {
+        word-break: break-all !important;
+    }
+}
