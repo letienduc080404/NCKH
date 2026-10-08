@@ -473,7 +473,7 @@ public class IotController {
 
         java.io.PrintWriter writer = response.getWriter();
         writer.write('\ufeff');
-        writer.println("Ngày,Thời gian,Tên thiết bị,Độ ẩm đất 1,Độ ẩm đất 2,Độ ẩm không khí,Nhiệt độ,Chế độ,Máy bơm,Van 1,Van 2");
+        writer.println("Ngày,Thời gian,Tên thiết bị,Độ ẩm đất 1,Độ ẩm đất 2,Độ ẩm không khí,Nhiệt độ");
 
         Device device = deviceOpt.get();
         if (device.getSensors() != null) {
@@ -503,11 +503,7 @@ public class IotController {
                 String soil2 = vals.containsKey("Độ ẩm đất 2") ? String.valueOf(vals.get("Độ ẩm đất 2")) : "";
                 String hum = vals.containsKey("Độ ẩm không khí") ? String.valueOf(vals.get("Độ ẩm không khí")) : "";
                 String temp = vals.containsKey("Nhiệt độ") ? String.valueOf(vals.get("Nhiệt độ")) : "";
-                String mode = vals.containsKey("Chế độ") ? (Double.valueOf(1.0).equals(vals.get("Chế độ")) ? "AUTO" : "MANUAL") : "";
-                String pump = vals.containsKey("Máy bơm") ? (Double.valueOf(1.0).equals(vals.get("Máy bơm")) ? "ON" : "OFF") : "";
-                String valve1 = vals.containsKey("Van 1") ? (Double.valueOf(1.0).equals(vals.get("Van 1")) ? "ON" : "OFF") : "";
-                String valve2 = vals.containsKey("Van 2") ? (Double.valueOf(1.0).equals(vals.get("Van 2")) ? "ON" : "OFF") : "";
-                writer.println(dateStr + "," + timeStr + "," + deviceName + "," + soil1 + "," + soil2 + "," + hum + "," + temp + "," + mode + "," + pump + "," + valve1 + "," + valve2);
+                writer.println(dateStr + "," + timeStr + "," + deviceName + "," + soil1 + "," + soil2 + "," + hum + "," + temp);
             }
         }
         writer.flush();
