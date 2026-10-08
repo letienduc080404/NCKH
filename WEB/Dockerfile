@@ -20,5 +20,4 @@ WORKDIR /app
 # Chỉ copy file .jar đã được build thành công từ Giai đoạn 1 sang đây (Giúp Docker image cực nhẹ)
 COPY --from=build /app/iot-web-app/target/*.jar app.jar
 
-EXPOSE 8080
 ENTRYPOINT ["java", "-Dfile.encoding=UTF-8", "-jar", "app.jar"]
