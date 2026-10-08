@@ -11,7 +11,7 @@ import java.util.List;
 
 @Repository
 public interface SensorReadingRepository extends JpaRepository<SensorReading, Long> {
-    List<SensorReading> findTop20000BySensorIdOrderByRecordedAtDesc(Long sensorId);
+    List<SensorReading> findTop2000BySensorIdOrderByRecordedAtDesc(Long sensorId);
     SensorReading findFirstBySensorIdOrderByRecordedAtDesc(Long sensorId);
     List<SensorReading> findTop50BySensorIdOrderByRecordedAtDesc(Long sensorId);
     List<SensorReading> findTop200BySensorIdOrderByRecordedAtDesc(Long sensorId);

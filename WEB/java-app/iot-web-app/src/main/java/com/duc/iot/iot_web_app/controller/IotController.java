@@ -481,7 +481,7 @@ public class IotController {
                     new java.util.TreeMap<>(java.util.Collections.reverseOrder());
 
             for (Sensor s : device.getSensors()) {
-                List<SensorReading> readings = readingRepository.findTop20000BySensorIdOrderByRecordedAtDesc(s.getId());
+                List<SensorReading> readings = readingRepository.findTop2000BySensorIdOrderByRecordedAtDesc(s.getId());
                 for (SensorReading r : readings) {
                     int secondBucket = (r.getRecordedAt().getSecond() / 5) * 5;
                     java.time.LocalDateTime timeKey = r.getRecordedAt().withNano(0).withSecond(secondBucket);
