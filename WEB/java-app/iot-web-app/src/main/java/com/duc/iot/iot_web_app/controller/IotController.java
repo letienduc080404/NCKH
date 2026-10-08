@@ -473,7 +473,7 @@ public class IotController {
 
         java.io.PrintWriter writer = response.getWriter();
         writer.write('\ufeff');
-        writer.println("Ngày,Thời gian,Tên thiết bị,Độ ẩm đất 1,Độ ẩm đất 2,Độ ẩm không khí,Nhiệt độ,% Pin");
+        writer.println("Ngày,Thời gian,Tên thiết bị,Độ ẩm đất 1,Độ ẩm đất 2,Độ ẩm không khí,Nhiệt độ,Phần trăm Pin");
 
         Device device = deviceOpt.get();
         if (device.getSensors() != null) {
@@ -503,7 +503,7 @@ public class IotController {
                 String soil2 = vals.containsKey("Độ ẩm đất 2") ? String.valueOf(vals.get("Độ ẩm đất 2")) : "";
                 String hum = vals.containsKey("Độ ẩm không khí") ? String.valueOf(vals.get("Độ ẩm không khí")) : "";
                 String temp = vals.containsKey("Nhiệt độ") ? String.valueOf(vals.get("Nhiệt độ")) : "";
-                String battery = vals.containsKey("% Pin") ? String.valueOf(vals.get("% Pin")) : "";
+                String battery = vals.containsKey("Pin") ? String.valueOf(vals.get("Pin")) : "";
                 writer.println(dateStr + "," + timeStr + "," + deviceName + "," + soil1 + "," + soil2 + "," + hum + "," + temp + "," + battery);
             }
         }
