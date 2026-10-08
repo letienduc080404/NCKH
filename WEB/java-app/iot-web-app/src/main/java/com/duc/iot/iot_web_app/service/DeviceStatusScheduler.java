@@ -20,6 +20,7 @@ import java.util.Map;
 public class DeviceStatusScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(DeviceStatusScheduler.class);
+    private static final long DEVICE_OFFLINE_TIMEOUT_SECONDS = 660L;
 
     private final DeviceRepository deviceRepository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -28,8 +29,9 @@ public class DeviceStatusScheduler {
     @Scheduled(fixedRate = 30000)
     @Transactional
     public void checkDeviceStatus() {
-        // Thiết bị được coi là offline nếu không gửi dữ liệu trong vòng 60 giây qua
-        LocalDateTime threshold = LocalDateTime.now().minusSeconds(60);
+        /* REQ runs every 5 minutes. Allow one missed polling cycle plus the
+         * response window before marking the device offline. */
+        LocalDateTime threshold = LocalDateTime.now().minusSeconds(DEVICE_OFFLINE_TIMEOUT_SECONDS);
 
         List<Device> offlineDevices = deviceRepository.findByStatusAndLastSeenBeforeOrNull(Device.Status.ONLINE, threshold);
 

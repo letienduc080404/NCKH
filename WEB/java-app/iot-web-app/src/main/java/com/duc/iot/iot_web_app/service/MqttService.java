@@ -1,6 +1,8 @@
 package com.duc.iot.iot_web_app.service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -70,7 +72,9 @@ public class MqttService implements MqttCallback {
             client = new MqttClient(brokerUrl, MqttClient.generateClientId());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
-            options.setCleanSession(true);
+            /* Keep subscriptions across automatic reconnects. The retained
+             * sensor snapshot is delivered on the first subscription. */
+            options.setCleanSession(false);
             options.setConnectionTimeout(10);
             
             if (mqttUsername != null && !mqttUsername.isEmpty()) {
@@ -131,11 +135,20 @@ public class MqttService implements MqttCallback {
             ObjectNode objectNode = objectMapper.createObjectNode();
             LocalDateTime payloadTime = LocalDateTime.now();
 
+            JsonNode updatedAtNode = data.get("updatedAt");
+            if (updatedAtNode != null && updatedAtNode.canConvertToLong() && updatedAtNode.asLong() > 0L) {
+                payloadTime = LocalDateTime.ofInstant(
+                        Instant.ofEpochSecond(updatedAtNode.asLong()), ZoneId.systemDefault());
+            }
+
             java.util.List<SensorReading> newReadings = new java.util.ArrayList<>();
 
             for (java.util.Map.Entry<String, JsonNode> entry : data.properties()) {
                 String key = entry.getKey();
                 JsonNode value = entry.getValue();
+                if ("updatedAt".equals(key)) {
+                    continue;
+                }
                 if (value.isNumber()) {
                     String sensorName = key;
                     Sensor.SensorType type = Sensor.SensorType.CUSTOM;
@@ -168,13 +181,19 @@ public class MqttService implements MqttCallback {
             }
 
             // Update device status and last seen
-            device.setStatus(Device.Status.ONLINE);
-            device.setLastSeen(LocalDateTime.now());
+            if (!message.isRetained()) {
+                device.setStatus(Device.Status.ONLINE);
+            }
+            if (device.getLastSeen() == null || payloadTime.isAfter(device.getLastSeen())) {
+                device.setLastSeen(payloadTime);
+            }
             deviceRepository.save(device);
 
             // Push to WebSocket for live feed
             objectNode.put("deviceId", device.getId());
-            objectNode.put("status", "ONLINE");
+            objectNode.put("status", device.getStatus().name());
+            objectNode.put("updatedAt", payloadTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
+            objectNode.put("retained", message.isRetained());
             messagingTemplate.convertAndSend("/topic/telemetry-updates", objectNode.toString());
 
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
@@ -197,10 +216,10 @@ public class MqttService implements MqttCallback {
                 client.publish(topic, message);
                 log.info("Published command to {}: {}", topic, payload);
             } else {
-                log.warn("MQTT client not connected, cannot publish command");
+                throw new IllegalStateException("MQTT client is not connected");
             }
         } catch (MqttException e) {
-            log.error("Failed to publish command", e);
+            throw new IllegalStateException("Failed to publish MQTT command", e);
         }
     }
 

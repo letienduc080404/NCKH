@@ -136,7 +136,12 @@
                     <span class="time-separator">•</span>
                     <span id="metric-receive_time" class="mono" th:text="${device.lastSeen != null ? #temporals.format(device.lastSeen, 'HH:mm:ss') : '--'}">--</span>
                 </div>
-                <div class="metric-caption">Thời gian Web nhận telemetry</div>
+                <button id="refresh-data-button" type="button" onclick="requestFreshData()"
+                        style="margin-top:14px;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 12px;border:1px solid var(--border-light);border-radius:9px;background:var(--bg-input);color:var(--text-main);font-size:12px;font-weight:800;cursor:pointer;">
+                    <span class="ms" style="font-size:17px;">refresh</span>
+                    <span id="refresh-data-label">Làm mới dữ liệu</span>
+                </button>
+                <div class="metric-caption" style="margin-top:8px;">Thời gian mẫu được đo tại thiết bị</div>
             </article>
 
             <article th:each="entry : ${latestReadings}"

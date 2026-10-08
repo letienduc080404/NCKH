@@ -1,4 +1,4 @@
-﻿package com.duc.iot.iot_web_app.controller;
+package com.duc.iot.iot_web_app.controller;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,7 @@ public class IotController {
 
     // Topic MQTT gá»­i ngÆ°á»¡ng vá» ESP32
     private static final String CONTROL_TOPIC_PREFIX = "iot/device/control/";
+    private static final long REFRESH_COOLDOWN_MS = 15_000L;
     private static final Set<String> THRESHOLD_SENSOR_NAMES = Set.of(
             "\u0110\u1ed9 \u1ea9m \u0111\u1ea5t 1",
             "\u0110\u1ed9 \u1ea9m \u0111\u1ea5t 2"
@@ -60,6 +63,7 @@ public class IotController {
     private final MqttService mqttService;
     private final ObjectMapper objectMapper;
     private final SensorThresholdRepository thresholdRepository;
+    private final ConcurrentMap<Long, Long> lastRefreshRequests = new ConcurrentHashMap<>();
 
     // --- TRANG WEB ---
     @GetMapping("/")
@@ -305,6 +309,24 @@ public class IotController {
         }
         Device device = deviceOpt.get();
         String topic = CONTROL_TOPIC_PREFIX + device.getDeviceUid();
+        final boolean refreshCommand = "refresh".equals(String.valueOf(payload.get("cmd")));
+
+        if (refreshCommand) {
+            synchronized (lastRefreshRequests) {
+                long now = System.currentTimeMillis();
+                long elapsed = now - lastRefreshRequests.getOrDefault(id, 0L);
+                if (elapsed < REFRESH_COOLDOWN_MS) {
+                    long retryAfterSeconds = (REFRESH_COOLDOWN_MS - elapsed + 999L) / 1000L;
+                    return ResponseEntity.status(429)
+                            .header("Retry-After", String.valueOf(retryAfterSeconds))
+                            .body(Map.of(
+                                    "status", "cooldown",
+                                    "message", "Vui lòng chờ trước khi làm mới lại",
+                                    "retryAfterSeconds", retryAfterSeconds));
+                }
+                lastRefreshRequests.put(id, now);
+            }
+        }
         try {
             /* Re-send persisted thresholds before AUTO so an STM32 that has
              * restarted does not continue with stale runtime values. */
@@ -313,11 +335,16 @@ public class IotController {
             }
             String jsonPayload = objectMapper.writeValueAsString(payload);
             mqttService.publishCommand(topic, jsonPayload);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "Command sent"));
+            return ResponseEntity.ok(refreshCommand
+                    ? Map.of("status", "success", "message", "Đã yêu cầu đo dữ liệu mới", "cooldownSeconds", 15)
+                    : Map.of("status", "success", "message", "Command sent"));
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize command payload for device {}", id, e);
             return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", "Invalid payload format"));
         } catch (RuntimeException e) {
+            if (refreshCommand) {
+                lastRefreshRequests.remove(id);
+            }
             log.error("Failed to publish command to device {}", id, e);
             return ResponseEntity.internalServerError().body(Map.of("status", "error", "message", e.getMessage()));
         }

@@ -207,6 +207,9 @@
     let pendingModeCommand = null;
     const pendingRelayCommands = {};
     const RELAY_CONFIRM_TIMEOUT_MS = 20000;
+    const REFRESH_COOLDOWN_SECONDS = 15;
+    let refreshCooldownTimer = null;
+    let refreshAwaitingData = false;
     let commandFeedbackTimer = null;
 
     function showCommandFeedback(message, kind) {
@@ -222,6 +225,61 @@
         box.style.display = 'block';
         clearTimeout(commandFeedbackTimer);
         commandFeedbackTimer = setTimeout(() => box.style.display = 'none', 3500);
+    }
+
+    function startRefreshCooldown(seconds) {
+        const button = document.getElementById('refresh-data-button');
+        const label = document.getElementById('refresh-data-label');
+        if (!button || !label) return;
+
+        clearInterval(refreshCooldownTimer);
+        let remaining = Math.max(1, Number(seconds) || REFRESH_COOLDOWN_SECONDS);
+        button.disabled = true;
+        button.style.opacity = '0.6';
+        button.style.cursor = 'not-allowed';
+        label.innerText = `Thử lại sau ${remaining}s`;
+
+        refreshCooldownTimer = setInterval(() => {
+            remaining -= 1;
+            if (remaining <= 0) {
+                clearInterval(refreshCooldownTimer);
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+                label.innerText = 'Làm mới dữ liệu';
+                return;
+            }
+            label.innerText = `Thử lại sau ${remaining}s`;
+        }, 1000);
+    }
+
+    async function requestFreshData() {
+        const button = document.getElementById('refresh-data-button');
+        if (button && button.disabled) return;
+
+        try {
+            if (button) button.disabled = true;
+            showCommandFeedback('Đang yêu cầu STM32 đo dữ liệu mới…', 'pending');
+            const response = await fetch('/api/device/' + deviceId + '/control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cmd: 'refresh' })
+            });
+            const result = await response.json();
+
+            if (response.status === 429) {
+                startRefreshCooldown(result.retryAfterSeconds || REFRESH_COOLDOWN_SECONDS);
+                showCommandFeedback(result.message || 'Vui lòng chờ trước khi làm mới lại', 'pending');
+                return;
+            }
+            if (!response.ok) throw new Error(result.message || ('HTTP ' + response.status));
+
+            refreshAwaitingData = true;
+            startRefreshCooldown(result.cooldownSeconds || REFRESH_COOLDOWN_SECONDS);
+        } catch (error) {
+            if (button) button.disabled = false;
+            showCommandFeedback('Không thể gửi yêu cầu làm mới: ' + error.message, 'error');
+        }
     }
     
         function updateModeUI(isAuto) {
@@ -436,12 +494,16 @@
             
             // Update terminal
             const stream = document.getElementById('data-stream');
-            const ts = new Date().toLocaleTimeString();
+            const sampleTime = Number(data.updatedAt);
+            const sampleDate = Number.isFinite(sampleTime) && sampleTime > 0 ? new Date(sampleTime) : new Date();
+            const ts = sampleDate.toLocaleTimeString();
             const line = document.createElement('div');
             
             // Format nice looking JSON
             let cleanData = {...data};
             delete cleanData.deviceId;
+            delete cleanData.updatedAt;
+            delete cleanData.retained;
             
             // Handle status updates
             if (cleanData.status) {
@@ -544,7 +606,7 @@
             if (stream.children.length > 50) stream.removeChild(stream.lastChild);
             
             // Update time metrics
-            const now = new Date();
+            const now = sampleDate;
             const dateEl = document.getElementById('metric-receive_date');
             if (dateEl) {
                 const dd = String(now.getDate()).padStart(2, '0');
@@ -559,6 +621,11 @@
                 const min = String(now.getMinutes()).padStart(2, '0');
                 const ss = String(now.getSeconds()).padStart(2, '0');
                 timeEl.innerText = `${hh}:${min}:${ss}`;
+            }
+
+            if (refreshAwaitingData) {
+                refreshAwaitingData = false;
+                showCommandFeedback('Đã nhận dữ liệu mới từ STM32', 'success');
             }
             
             // Update UI metrics in real-time
