@@ -18,6 +18,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws-iot").setAllowedOriginPatterns("*").withSockJS();
+        // Native WebSocket endpoint (bypasses SockJS unload issue in modern browsers)
+        registry.addEndpoint("/ws-iot").setAllowedOriginPatterns("*");
+        // Fallback SockJS endpoint
+        registry.addEndpoint("/ws-iot-sockjs").setAllowedOriginPatterns("*").withSockJS();
     }
 }
