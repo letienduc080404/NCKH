@@ -790,15 +790,29 @@
 const DEVICE_ID = /*[[${device.id}]]*/ 0;
 const THRESHOLD_SENSORS = new Set(['Độ ẩm đất 1', 'Độ ẩm đất 2']);
 
-// Load existing thresholds from server-side render
+// Load existing thresholds from server-side render. thresholdsJson is already
+// serialized by Jackson, so Thymeleaf exposes it to JavaScript as a string.
+// Parse it before updating entries after a save; assigning properties directly
+// to that string would be ignored and the modal would reopen with 35/55.
 let allThresholds = {};
 try {
-  allThresholds = /*[[${thresholdsJson != null ? thresholdsJson : '{}'}]]*/ {};
+  const renderedThresholds = /*[[${thresholdsJson != null ? thresholdsJson : '{}'}]]*/ '{}';
+  allThresholds = typeof renderedThresholds === 'string'
+    ? JSON.parse(renderedThresholds)
+    : renderedThresholds;
+
+  if (!allThresholds || typeof allThresholds !== 'object' || Array.isArray(allThresholds)) {
+    allThresholds = {};
+  }
+
   // Normalize: server returns List<SensorThreshold> per key
   for (const key in allThresholds) {
     if (!Array.isArray(allThresholds[key])) allThresholds[key] = [];
   }
-} catch(e) { allThresholds = {}; }
+} catch(e) {
+  console.error('Could not load saved irrigation thresholds', e);
+  allThresholds = {};
+}
 
 let currentSensor = null;
 const DEFAULT_COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316'];
